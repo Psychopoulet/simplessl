@@ -1,0 +1,28 @@
+{
+  "name": "simplessl",
+  "version": "1.0.0",
+  "description": "A basic ssl manager",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "test": "node tests/tests.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Psychopoulet/simplessl.git"
+  },
+  "keywords": [
+    "ssl", "manage"
+  ],
+  "author": "Sébastien VIDAL",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Psychopoulet/simplessl/issues"
+  },
+  "dependencies": {
+    "pem": "^1.8.1",
+    "simplefs": "^1.1.0"
+  },
+  "devDependencies": {},
+  "homepage": "https://github.com/Psychopoulet/simplessl#readme"
+}
