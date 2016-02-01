@@ -13,6 +13,11 @@ module.exports = class SimpleSSL {
 
 	constructor () { }
 
+	setOpenSSLPath (path) {
+		pem.config({ pathOpenSSL : path });
+		return this;
+	}
+
 	createPrivateKey (p_sKeyFilePath) {
 
 		var that = this;
