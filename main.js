@@ -5,21 +5,70 @@
 
 const	path = require('path'),
 		fs = require('simplefs'),
+		spawn = require('child_process').spawn,
 		pem = require('pem');
 
 // private
 
-var _openSSLConfPath = null;
+var _openSSLBinPath, _openSSLConfPath;
+
+function _wrapper (tabArgs, binary) {
+
+	return new Promise(function(resolve, reject) {
+
+		var sResult = '', oSpawn = spawn(_openSSLBinPath, tabArgs);
+
+		oSpawn.stderr.on('data', function (msg) {
+
+			if (msg) {
+
+				msg = (binary) ? msg.toString('binary') : msg;
+
+				if ('.' != msg && '+' != msg) {
+
+					console.log('stderr');
+					console.log(msg);
+
+					oSpawn.stdin.write("\r\n");
+
+					sResult += msg;
+
+				}
+			
+			}
+
+		});
+
+		oSpawn.on('close', function (code) {
+
+			if (code) {
+				reject(sResult);
+			}
+			else {
+				resolve();
+			}
+
+		});
+
+	});
+
+}
 
 // module
 
 module.exports = class SimpleSSL {
 
-	constructor () { }
+	constructor () {
+
+		_openSSLBinPath = process.env.OPENSSL_BIN || 'openssl';
+		_openSSLConfPath = process.env.OPENSSL_CONF || null;
+
+	}
 
 	setOpenSSLBinPath (path) {
 
 		if (fs.fileExists(path)) {
+			_openSSLBinPath = path;
 			pem.config({ pathOpenSSL : path });
 		}
 		else {
@@ -41,17 +90,17 @@ module.exports = class SimpleSSL {
 		return this;
 	}
 
-	createPrivateKey (p_sKeyFilePath) {
+	createPrivateKey (keyFilePath) {
 
 		var that = this;
 
 		return new Promise(function(resolve, reject) {
-			
+
 			try {
 
-				if (fs.fileExists(p_sKeyFilePath)) {
+				if (fs.fileExists(keyFilePath)) {
 
-					fs.readFile(p_sKeyFilePath, { encoding : 'utf8' } , function (err, data) {
+					fs.readFile(keyFilePath, { encoding : 'utf8' } , function (err, data) {
 
 						if (err) {
 							reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
@@ -65,36 +114,36 @@ module.exports = class SimpleSSL {
 				}
 				else {
 
-					pem.createPrivateKey(2048, function(err, data) {
+					var directory = path.dirname(keyFilePath);
 
-						if (err) {
+					if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
+						reject(that.constructor.name + "/createPrivateKey : Impossible to create the directory of the security key (" + directory + ").");
+					}
+					else {
+
+						_wrapper([
+							'genrsa',
+							'-out', keyFilePath,
+							2048
+						]).then(function() {
+
+							fs.readFile(keyFilePath, { encoding : 'utf8' } , function (err, data) {
+
+								if (err) {
+									reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
+								}
+								else {
+									resolve({ privateKey : data });
+								}
+
+							});
+
+						})
+						.catch(function(err) {
 							reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
-						}
-						else {
+						});
 
-							var directory = path.dirname(p_sKeyFilePath);
-
-							if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
-								reject(that.constructor.name + "/createPrivateKey : Impossible to create the directory of the security key.");
-							}
-							else {
-
-								fs.writeFile(p_sKeyFilePath, data.key, function (err) {
-
-									if (err) {
-										reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
-									}
-									else {
-										resolve({ privateKey : data.key });
-									}
-
-								});
-
-							}
-
-						}
-
-					});
+					}
 
 				}
 
@@ -107,7 +156,7 @@ module.exports = class SimpleSSL {
 
 	}
 
-	createCSR (p_sKeyFilePath, p_sCSRFilePath) {
+	createCSR (keyFilePath, CSRFilePath) {
 
 		var that = this;
 
@@ -115,23 +164,55 @@ module.exports = class SimpleSSL {
 			
 			try {
 
-				that.createPrivateKey(p_sKeyFilePath).then(function(createPrivateKeyData) {
+				that.createPrivateKey(keyFilePath).then(function(keys) {
 
-					if (fs.fileExists(p_sCSRFilePath)) {
+					if (fs.fileExists(CSRFilePath)) {
 
-						fs.readFile(p_sCSRFilePath, { encoding : 'utf8' } , function (err, CSR) {
+						fs.readFile(CSRFilePath, { encoding : 'utf8' } , function (err, data) {
 
 							if (err) {
 								reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
 							}
 							else {
-								resolve({ privateKey : createPrivateKeyData.privateKey, CSR : CSR });
+								resolve({ privateKey : keys.privateKey, CSR : data });
 							}
 
 						});
 
 					}
 					else {
+
+						/*var directory = path.dirname(keyFilePath);
+
+						if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
+							reject(that.constructor.name + "/createCSR : Impossible to create the directory of the security key (" + directory + ").");
+						}
+						else {
+
+							_wrapper([
+								'req',
+								'-new',
+								'-key', keyFilePath,
+								'-out', CSRFilePath
+							], true).then(function() {
+
+								fs.readFile(keyFilePath, { encoding : 'utf8' } , function (err, data) {
+
+									if (err) {
+										reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
+									}
+									else {
+										resolve({ privateKey : keys.privateKey, CSR : data });
+									}
+
+								});
+
+							})
+							.catch(function(err) {
+								reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
+							});
+
+						}*/
 
 						pem.createCSR({ clientKey : createPrivateKeyData.privateKey, hash : 'sha256' }, function(err, data) {
 
@@ -140,14 +221,14 @@ module.exports = class SimpleSSL {
 							}
 							else {
 
-								var directory = path.dirname(p_sCSRFilePath);
+								var directory = path.dirname(CSRFilePath);
 
 								if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
 									reject(that.constructor.name + "/createCSR : Impossible to create the directory of the signing request certificate.");
 								}
 								else {
 
-									fs.writeFile(p_sCSRFilePath, data.csr, function (err) {
+									fs.writeFile(CSRFilePath, data.csr, function (err) {
 
 										if (err) {
 											reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
@@ -178,7 +259,7 @@ module.exports = class SimpleSSL {
 
 	}
 
-	createCertificate (p_sKeyFilePath, p_sCSRFilePath, p_sCRTFilePath) {
+	createCertificate (keyFilePath, CSRFilePath, CRTFilePath) {
 		
 		var that = this;
 
@@ -186,11 +267,11 @@ module.exports = class SimpleSSL {
 
 			try {
 
-				that.createCSR(p_sKeyFilePath, p_sCSRFilePath).then(function(createCSRData) {
+				that.createCSR(keyFilePath, CSRFilePath).then(function(createCSRData) {
 
-					if (fs.fileExists(p_sCRTFilePath)) {
+					if (fs.fileExists(CRTFilePath)) {
 
-						fs.readFile(p_sCRTFilePath, { encoding : 'utf8' } , function (err, certificate) {
+						fs.readFile(CRTFilePath, { encoding : 'utf8' } , function (err, certificate) {
 
 							if (err) {
 								reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
@@ -217,14 +298,14 @@ module.exports = class SimpleSSL {
 							}
 							else {
 
-								var directory = path.dirname(p_sCRTFilePath);
+								var directory = path.dirname(CRTFilePath);
 
 								if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
 									reject(that.constructor.name + "/createCertificate : Impossible to create the directory of the certificate.");
 								}
 								else {
 
-									fs.writeFile(p_sCRTFilePath, data.certificate, function (err) {
+									fs.writeFile(CRTFilePath, data.certificate, function (err) {
 
 										if (err) {
 											reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));

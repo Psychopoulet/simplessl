@@ -83,7 +83,10 @@
 						require('https').createServer({
 							key: keys.privateKey,
 							cert: keys.certificate
-						});
+						}, function(req, res) {
+							res.writeHead(200);
+							res.end('hello world\n');
+						}).listen(8080);
 
 					}
 					catch(e) {
