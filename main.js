@@ -5,30 +5,100 @@
 
 const	path = require('path'),
 		fs = require('simplefs'),
-		pem = require('pem');
+		spawn = require('child_process').spawn;
+
+// private
+
+var _openSSLBinPath, _openSSLConfPath;
+
+function _wrapper (tabArgs) {
+
+	return new Promise(function(resolve, reject) {
+
+		var sResult = '', oSpawn = spawn(_openSSLBinPath, tabArgs);
+
+		oSpawn.stderr.on('data', function (msg) {
+
+			if (msg) {
+
+				msg = msg.toString('binary').trim();
+
+				if ('.' != msg && '+' != msg) {
+
+					try {
+						oSpawn.stdin.write("\r\n");
+					}
+					catch (e) { }
+
+					sResult += msg;
+
+				}
+			
+			}
+
+		});
+
+		oSpawn.on('close', function (code) {
+
+			if (code) {
+				reject(sResult);
+			}
+			else {
+				resolve();
+			}
+
+		});
+
+	});
+
+}
 
 // module
 
 module.exports = class SimpleSSL {
 
-	constructor () { }
+	constructor () {
 
-	setOpenSSLPath (path) {
-		pem.config({ pathOpenSSL : path });
+		_openSSLBinPath = process.env.OPENSSL_BIN || 'openssl';
+		_openSSLConfPath = process.env.OPENSSL_CONF || null;
+
+	}
+
+	setOpenSSLBinPath (path) {
+
+		if (fs.fileExists(path)) {
+			_openSSLBinPath = path;
+		}
+		else {
+			throw this.constructor.name + "/setOpenSSLBinPath : '" + path + "' does not exist.";
+		}
+		
 		return this;
 	}
 
-	createPrivateKey (p_sKeyFilePath) {
+	setOpenSSLConfPath (path) {
+
+		if (fs.fileExists(path)) {
+			_openSSLConfPath = path;
+		}
+		else {
+			throw this.constructor.name + "/setOpenSSLConfPath : '" + path + "' does not exist.";
+		}
+		
+		return this;
+	}
+
+	createPrivateKey (keyFilePath) {
 
 		var that = this;
 
 		return new Promise(function(resolve, reject) {
-			
+
 			try {
 
-				if (fs.fileExists(p_sKeyFilePath)) {
+				if (fs.fileExists(keyFilePath)) {
 
-					fs.readFile(p_sKeyFilePath, { encoding : 'utf8' } , function (err, data) {
+					fs.readFile(keyFilePath, { encoding : 'utf8' } , function (err, data) {
 
 						if (err) {
 							reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
@@ -42,36 +112,43 @@ module.exports = class SimpleSSL {
 				}
 				else {
 
-					pem.createPrivateKey(2048, function(err, data) {
+					var directory = path.dirname(keyFilePath);
 
-						if (err) {
+					if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
+						reject(that.constructor.name + "/createPrivateKey : Impossible to create the directory of the security key (" + directory + ").");
+					}
+					else {
+
+						var options = [
+							'genrsa',
+							'-out', keyFilePath,
+							4096
+						];
+
+						if (_openSSLConfPath) {
+							options.push('-config');
+							options.push(_openSSLConfPath);
+						}
+
+						_wrapper(options).then(function() {
+
+							fs.readFile(keyFilePath, { encoding : 'utf8' } , function (err, data) {
+
+								if (err) {
+									reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
+								}
+								else {
+									resolve({ privateKey : data });
+								}
+
+							});
+
+						})
+						.catch(function(err) {
 							reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
-						}
-						else {
+						});
 
-							var directory = path.dirname(p_sKeyFilePath);
-
-							if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
-								reject(that.constructor.name + "/createPrivateKey : Impossible to create the directory of the security key.");
-							}
-							else {
-
-								fs.writeFile(p_sKeyFilePath, data.key, function (err) {
-
-									if (err) {
-										reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
-									}
-									else {
-										resolve({ privateKey : data.key });
-									}
-
-								});
-
-							}
-
-						}
-
-					});
+					}
 
 				}
 
@@ -84,7 +161,7 @@ module.exports = class SimpleSSL {
 
 	}
 
-	createCSR (p_sKeyFilePath, p_sCSRFilePath) {
+	createCSR (keyFilePath, CSRFilePath) {
 
 		var that = this;
 
@@ -92,60 +169,67 @@ module.exports = class SimpleSSL {
 			
 			try {
 
-				that.createPrivateKey(p_sKeyFilePath)
-					.then(function(createPrivateKeyData) {
+				that.createPrivateKey(keyFilePath).then(function(keys) {
 
-						if (fs.fileExists(p_sCSRFilePath)) {
+					if (fs.fileExists(CSRFilePath)) {
 
-							fs.readFile(p_sCSRFilePath, { encoding : 'utf8' } , function (err, CSR) {
+						fs.readFile(CSRFilePath, { encoding : 'utf8' } , function (err, data) {
 
-								if (err) {
-									reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
-								}
-								else {
-									resolve({ privateKey : createPrivateKeyData.privateKey, CSR : CSR });
-								}
+							if (err) {
+								reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
+							}
+							else {
+								resolve({ privateKey : keys.privateKey, CSR : data });
+							}
 
-							});
+						});
 
+					}
+					else {
+
+						var directory = path.dirname(CSRFilePath);
+
+						if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
+							reject(that.constructor.name + "/createCSR : Impossible to create the directory of the security key (" + directory + ").");
 						}
 						else {
 
-							pem.createCSR({ clientKey : createPrivateKeyData.privateKey, hash : 'sha256' }, function(err, data) {
+							var options = [
+								'req',
+								'-new',
+								'-key', keyFilePath,
+								'-out', CSRFilePath
+							];
 
-								if (err) {
-									reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
-								}
-								else {
+							if (_openSSLConfPath) {
+								options.push('-config');
+								options.push(_openSSLConfPath);
+							}
 
-									var directory = path.dirname(p_sCSRFilePath);
+							_wrapper(options).then(function() {
 
-									if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
-										reject(that.constructor.name + "/createCSR : Impossible to create the directory of the signing request certificate.");
+								fs.readFile(CSRFilePath, { encoding : 'utf8' } , function (err, data) {
+
+									if (err) {
+										reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
 									}
 									else {
-
-										fs.writeFile(p_sCSRFilePath, data.csr, function (err) {
-
-											if (err) {
-												reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
-											}
-											else {
-												resolve({ privateKey : createPrivateKeyData.privateKey, CSR : data.csr });
-											}
-
-										});
-
+										resolve({ privateKey : keys.privateKey, CSR : data });
 									}
 
-								}
-								
+								});
+
+							})
+							.catch(function(err) {
+								reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
 							});
 
 						}
 
-					})
-					.catch(reject);
+					}
+
+				})
+				.catch(reject);
 
 			}
 			catch (e) {
@@ -156,7 +240,7 @@ module.exports = class SimpleSSL {
 
 	}
 
-	createCertificate (p_sKeyFilePath, p_sCSRFilePath, p_sCRTFilePath) {
+	createCertificate (keyFilePath, CSRFilePath, CRTFilePath) {
 		
 		var that = this;
 
@@ -164,60 +248,64 @@ module.exports = class SimpleSSL {
 
 			try {
 
-				that.createCSR(p_sKeyFilePath, p_sCSRFilePath)
-					.then(function(createCSRData) {
+				that.createCSR(keyFilePath, CSRFilePath).then(function(keys) {
 
-						if (fs.fileExists(p_sCRTFilePath)) {
+					if (fs.fileExists(CRTFilePath)) {
 
-							fs.readFile(p_sCRTFilePath, { encoding : 'utf8' } , function (err, certificate) {
+						fs.readFile(CRTFilePath, { encoding : 'utf8' } , function (err, certificate) {
 
-								if (err) {
-									reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
-								}
-								else {
-									resolve({ privateKey : createCSRData.privateKey, CSR : createCSRData.CSR, certificate : certificate });
-								}
+							if (err) {
+								reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
+							}
+							else {
+								resolve({ privateKey : keys.privateKey, CSR : keys.CSR, certificate : certificate });
+							}
 
-							});
+						});
 
+					}
+					else {
+
+						var directory = path.dirname(CRTFilePath);
+
+						if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
+							reject(that.constructor.name + "/createCertificate : Impossible to create the directory of the security key (" + directory + ").");
 						}
 						else {
 
-							pem.createCertificate({ clientKey : createCSRData.privateKey, csr : createCSRData.CSR, selfSigned : true, days : 365 }, function(err, data) {
+							var options = [
+								'x509',
+								'-req',
+								'-days', '365',
+								'-in', CSRFilePath,
+								'-signkey', keyFilePath,
+								'-out', CRTFilePath
+							];
 
-								if (err) {
-									reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
-								}
-								else {
+							_wrapper(options).then(function() {
 
-									var directory = path.dirname(p_sCRTFilePath);
+								fs.readFile(CRTFilePath, { encoding : 'utf8' } , function (err, certificate) {
 
-									if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
-										reject(that.constructor.name + "/createCertificate : Impossible to create the directory of the certificate.");
+									if (err) {
+										reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
 									}
 									else {
-
-										fs.writeFile(p_sCRTFilePath, data.certificate, function (err) {
-
-											if (err) {
-												reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
-											}
-											else {
-												resolve({ privateKey : createCSRData.privateKey, CSR : createCSRData.CSR, certificate :  data.certificate });
-											}
-
-										});
-
+										resolve({ privateKey : keys.privateKey, CSR : keys.CSR, certificate : certificate });
 									}
 
-								}
-								
+								});
+
+							})
+							.catch(function(err) {
+								reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
 							});
 
 						}
 
-					})
-					.catch(reject);
+					}
+
+				})
+				.catch(reject);
 
 			}
 			catch (e) {
