@@ -36,6 +36,8 @@
 			catch(e) {
 				console.log(e);
 			}
+
+		SSL.setOpenSSLConfPath('C:\\Program Files (x86)\\GnuWin32\\share\\openssl.cnf');
 			
 		console.log("----------------");
 		console.log("");
@@ -80,17 +82,30 @@
 
 					try {
 
+						console.log("----------------");
+						console.log("test server on 8080 port");
+						console.log("----------------");
+						console.log("must be == 'running' :");
+
 						require('https').createServer({
 							key: keys.privateKey,
 							cert: keys.certificate
 						}, function(req, res) {
 							res.writeHead(200);
 							res.end('hello world\n');
-						}).listen(8080);
+						})
+						.listen(8080, function() {
+
+							console.log("running");
+							console.log("----------------");
+							console.log("");
+						});
 
 					}
 					catch(e) {
 						console.log(e);
+						console.log("----------------");
+						console.log("");
 					}
 
 				})

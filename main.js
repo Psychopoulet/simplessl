@@ -5,14 +5,13 @@
 
 const	path = require('path'),
 		fs = require('simplefs'),
-		spawn = require('child_process').spawn,
-		pem = require('pem');
+		spawn = require('child_process').spawn;
 
 // private
 
 var _openSSLBinPath, _openSSLConfPath;
 
-function _wrapper (tabArgs, binary) {
+function _wrapper (tabArgs) {
 
 	return new Promise(function(resolve, reject) {
 
@@ -22,14 +21,14 @@ function _wrapper (tabArgs, binary) {
 
 			if (msg) {
 
-				msg = (binary) ? msg.toString('binary') : msg;
+				msg = msg.toString('binary').trim();
 
 				if ('.' != msg && '+' != msg) {
 
-					console.log('stderr');
-					console.log(msg);
-
-					oSpawn.stdin.write("\r\n");
+					try {
+						oSpawn.stdin.write("\r\n");
+					}
+					catch (e) { }
 
 					sResult += msg;
 
@@ -69,7 +68,6 @@ module.exports = class SimpleSSL {
 
 		if (fs.fileExists(path)) {
 			_openSSLBinPath = path;
-			pem.config({ pathOpenSSL : path });
 		}
 		else {
 			throw this.constructor.name + "/setOpenSSLBinPath : '" + path + "' does not exist.";
@@ -121,11 +119,18 @@ module.exports = class SimpleSSL {
 					}
 					else {
 
-						_wrapper([
+						var options = [
 							'genrsa',
 							'-out', keyFilePath,
-							2048
-						]).then(function() {
+							4096
+						];
+
+						if (_openSSLConfPath) {
+							options.push('-config');
+							options.push(_openSSLConfPath);
+						}
+
+						_wrapper(options).then(function() {
 
 							fs.readFile(keyFilePath, { encoding : 'utf8' } , function (err, data) {
 
@@ -182,21 +187,28 @@ module.exports = class SimpleSSL {
 					}
 					else {
 
-						/*var directory = path.dirname(keyFilePath);
+						var directory = path.dirname(CSRFilePath);
 
 						if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
 							reject(that.constructor.name + "/createCSR : Impossible to create the directory of the security key (" + directory + ").");
 						}
 						else {
 
-							_wrapper([
+							var options = [
 								'req',
 								'-new',
 								'-key', keyFilePath,
 								'-out', CSRFilePath
-							], true).then(function() {
+							];
 
-								fs.readFile(keyFilePath, { encoding : 'utf8' } , function (err, data) {
+							if (_openSSLConfPath) {
+								options.push('-config');
+								options.push(_openSSLConfPath);
+							}
+
+							_wrapper(options).then(function() {
+
+								fs.readFile(CSRFilePath, { encoding : 'utf8' } , function (err, data) {
 
 									if (err) {
 										reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
@@ -212,38 +224,7 @@ module.exports = class SimpleSSL {
 								reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
 							});
 
-						}*/
-
-						pem.createCSR({ clientKey : createPrivateKeyData.privateKey, hash : 'sha256' }, function(err, data) {
-
-							if (err) {
-								reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
-							}
-							else {
-
-								var directory = path.dirname(CSRFilePath);
-
-								if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
-									reject(that.constructor.name + "/createCSR : Impossible to create the directory of the signing request certificate.");
-								}
-								else {
-
-									fs.writeFile(CSRFilePath, data.csr, function (err) {
-
-										if (err) {
-											reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
-										}
-										else {
-											resolve({ privateKey : createPrivateKeyData.privateKey, CSR : data.csr });
-										}
-
-									});
-
-								}
-
-							}
-							
-						});
+						}
 
 					}
 
@@ -267,7 +248,7 @@ module.exports = class SimpleSSL {
 
 			try {
 
-				that.createCSR(keyFilePath, CSRFilePath).then(function(createCSRData) {
+				that.createCSR(keyFilePath, CSRFilePath).then(function(keys) {
 
 					if (fs.fileExists(CRTFilePath)) {
 
@@ -277,7 +258,7 @@ module.exports = class SimpleSSL {
 								reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
 							}
 							else {
-								resolve({ privateKey : createCSRData.privateKey, CSR : createCSRData.CSR, certificate : certificate });
+								resolve({ privateKey : keys.privateKey, CSR : keys.CSR, certificate : certificate });
 							}
 
 						});
@@ -285,42 +266,41 @@ module.exports = class SimpleSSL {
 					}
 					else {
 
-						var options = { clientKey : createCSRData.privateKey, csr : createCSRData.CSR, selfSigned : true, days : 365 };
+						var directory = path.dirname(CRTFilePath);
 
-						if (_openSSLConfPath) {
-							options.extFile = _openSSLConfPath;
+						if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
+							reject(that.constructor.name + "/createCertificate : Impossible to create the directory of the security key (" + directory + ").");
 						}
+						else {
 
-						pem.createCertificate(options, function(err, data) {
+							var options = [
+								'x509',
+								'-req',
+								'-days', '365',
+								'-in', CSRFilePath,
+								'-signkey', keyFilePath,
+								'-out', CRTFilePath
+							];
 
-							if (err) {
+							_wrapper(options).then(function() {
+
+								fs.readFile(CRTFilePath, { encoding : 'utf8' } , function (err, certificate) {
+
+									if (err) {
+										reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
+									}
+									else {
+										resolve({ privateKey : keys.privateKey, CSR : keys.CSR, certificate : certificate });
+									}
+
+								});
+
+							})
+							.catch(function(err) {
 								reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
-							}
-							else {
+							});
 
-								var directory = path.dirname(CRTFilePath);
-
-								if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
-									reject(that.constructor.name + "/createCertificate : Impossible to create the directory of the certificate.");
-								}
-								else {
-
-									fs.writeFile(CRTFilePath, data.certificate, function (err) {
-
-										if (err) {
-											reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
-										}
-										else {
-											resolve({ privateKey : createCSRData.privateKey, CSR : createCSRData.CSR, certificate :  data.certificate });
-										}
-
-									});
-
-								}
-
-							}
-							
-						});
+						}
 
 					}
 
