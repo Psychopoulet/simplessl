@@ -15,9 +15,19 @@ function _wrapper (tabArgs) {
 
 	return new Promise(function(resolve, reject) {
 
-		var sResult = '', oSpawn = spawn(_openSSLBinPath, tabArgs);
+		let sResult = '', oSpawn = spawn(_openSSLBinPath, tabArgs);
 
-		oSpawn.stderr.on('data', function (msg) {
+		oSpawn.on('close', function (code) {
+
+			if (code) {
+				reject(sResult);
+			}
+			else {
+				resolve();
+			}
+
+		})
+		.stderr.on('data', function (msg) {
 
 			if (msg) {
 
@@ -34,17 +44,6 @@ function _wrapper (tabArgs) {
 
 				}
 			
-			}
-
-		});
-
-		oSpawn.on('close', function (code) {
-
-			if (code) {
-				reject(sResult);
-			}
-			else {
-				resolve();
 			}
 
 		});
@@ -90,7 +89,7 @@ module.exports = class SimpleSSL {
 
 	createPrivateKey (keyFilePath) {
 
-		var that = this;
+		let that = this;
 
 		return new Promise(function(resolve, reject) {
 
@@ -112,14 +111,14 @@ module.exports = class SimpleSSL {
 				}
 				else {
 
-					var directory = path.dirname(keyFilePath);
+					let directory = path.dirname(keyFilePath);
 
 					if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
 						reject(that.constructor.name + "/createPrivateKey : Impossible to create the directory of the security key (" + directory + ").");
 					}
 					else {
 
-						var options = [
+						let options = [
 							'genrsa',
 							'-out', keyFilePath,
 							4096
@@ -163,7 +162,7 @@ module.exports = class SimpleSSL {
 
 	createCSR (keyFilePath, CSRFilePath) {
 
-		var that = this;
+		let that = this;
 
 		return new Promise(function(resolve, reject) {
 			
@@ -187,14 +186,14 @@ module.exports = class SimpleSSL {
 					}
 					else {
 
-						var directory = path.dirname(CSRFilePath);
+						let directory = path.dirname(CSRFilePath);
 
 						if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
 							reject(that.constructor.name + "/createCSR : Impossible to create the directory of the security key (" + directory + ").");
 						}
 						else {
 
-							var options = [
+							let options = [
 								'req',
 								'-new',
 								'-key', keyFilePath,
@@ -242,7 +241,7 @@ module.exports = class SimpleSSL {
 
 	createCertificate (keyFilePath, CSRFilePath, CRTFilePath) {
 		
-		var that = this;
+		let that = this;
 
 		return new Promise(function(resolve, reject) {
 
@@ -266,14 +265,14 @@ module.exports = class SimpleSSL {
 					}
 					else {
 
-						var directory = path.dirname(CRTFilePath);
+						let directory = path.dirname(CRTFilePath);
 
 						if (!fs.dirExists(directory) && !fs.mkdirp(directory)) {
 							reject(that.constructor.name + "/createCertificate : Impossible to create the directory of the security key (" + directory + ").");
 						}
 						else {
 
-							var options = [
+							let options = [
 								'x509',
 								'-req',
 								'-days', '365',
