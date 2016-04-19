@@ -2,9 +2,9 @@
 
 // deps
 
-	const path = require('path'), SimpleSSL = require('../main.js');
+	const path = require('path'), SimpleSSL = require('../main.js'), fs = require('simplefs');
 
-// attrs
+// private
 
 	var SSL = new SimpleSSL(),
 		crtpath = path.join(__dirname, 'crt'),
@@ -20,6 +20,7 @@ function testErrors() {
 
 		try {
 
+			console.log("");
 			console.log("----------------");
 			console.log("test errors");
 			console.log("----------------");
@@ -47,7 +48,6 @@ function testErrors() {
 			console.log("");
 			console.log("----------------");
 			console.log("");
-			console.log("");
 
 			resolve();
 
@@ -67,12 +67,13 @@ function testCreatePrivateKey() {
 
 		try {
 
+			console.log("");
 			console.log("----------------");
 			console.log("test createPrivateKey");
 			console.log("----------------");
 			console.log("");
 
-			console.log("must be == { privateKey : data } :");
+			console.log("must be == { privateKey : <privateKey> } :");
 			
 			SSL.createPrivateKey(serverkey).then(function(keys) {
 
@@ -85,19 +86,7 @@ function testCreatePrivateKey() {
 
 				resolve();
 
-			})
-			.catch(function(err) {
-
-				console.log(err);
-
-				console.log("");
-				console.log("----------------");
-				console.log("");
-				console.log("");
-
-				reject();
-				
-			});
+			}).catch(reject);
 
 		}
 		catch (e) {
@@ -115,12 +104,13 @@ function testCreateCSR() {
 
 		try {
 
+			console.log("");
 			console.log("----------------");
 			console.log("test createCSR");
 			console.log("----------------");
 			console.log("");
 
-			console.log("must be == { privateKey : data, CSR : data } :");
+			console.log("must be == { privateKey : <privateKey>, CSR : <CSR> } :");
 			
 			SSL.createCSR(serverkey, servercsr).then(function(keys) {
 
@@ -133,19 +123,7 @@ function testCreateCSR() {
 
 				resolve();
 
-			})
-			.catch(function(err) {
-
-				console.log(err);
-
-				console.log("");
-				console.log("----------------");
-				console.log("");
-				console.log("");
-
-				reject();
-				
-			});
+			}).catch(reject);
 
 		}
 		catch (e) {
@@ -168,7 +146,7 @@ function testCreateCertificate() {
 			console.log("----------------");
 			console.log("");
 
-			console.log("must be == { privateKey : data, CSR : data, certificate : data } :");
+			console.log("must be == { privateKey : <privateKey>, CSR : <CSR>, certificate : <certificate> } :");
 			
 			SSL.createCertificate(serverkey, servercsr, servercrt).then(function(keys) {
 
@@ -181,19 +159,7 @@ function testCreateCertificate() {
 
 				resolve(keys);
 
-			})
-			.catch(function(err) {
-
-				console.log(err);
-
-				console.log("");
-				console.log("----------------");
-				console.log("");
-				console.log("");
-
-				reject();
-				
-			});
+			}).catch(reject);
 
 		}
 		catch (e) {
@@ -236,6 +202,8 @@ function testServer(keys) {
 
 				server.close();
 
+				resolve();
+
 			});
 
 		}
@@ -250,18 +218,23 @@ function testServer(keys) {
 
 // run
 
-	testErrors().then(function() {
+	fs.prmdirp(crtpath).then(function() {
+		return testErrors();
+	}).then(function() {
 
 		SSL.setOpenSSLConfPath('C:\\Program Files (x86)\\GnuWin32\\share\\openssl.cnf');
 
-		testCreatePrivateKey().then(function() {
+		return testCreatePrivateKey();
 
-			testCreateCSR().then(function() {
-
-				testCreateCertificate().then(testServer);
-
-			});
-
-		});
-		
+	}).then(function() {
+		return testCreateCSR();
+	}).then(function() {
+		return testCreateCertificate();
+	}).then(function(keys) {
+		return testServer(keys);
+	}).then(function() {
+		return fs.prmdirp(crtpath);
+	}).catch(function(err) {
+		console.log('tests interruption', err);
 	});
+	
