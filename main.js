@@ -217,7 +217,7 @@ module.exports = class SimpleSSL {
 					fs.isFileProm(CRTFilePath).then(function(exists) {
 
 						if (exists) {
-							return fs.readFile(CRTFilePath, 'utf8');
+							return fs.readFileProm(CRTFilePath, 'utf8');
 						}
 						else {
 
