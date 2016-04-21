@@ -20,7 +20,7 @@
     "url": "https://github.com/Psychopoulet/simplessl/issues"
   },
   "dependencies": {
-    "simplefs": "^1.4.3"
+    "simplefs": "^2.0.2"
   },
   "devDependencies": {},
   "homepage": "https://github.com/Psychopoulet/simplessl#readme"

@@ -63,45 +63,33 @@ module.exports = class SimpleSSL {
 
 	}
 
-	setOpenSSLBinPath (path) {
+	setOpenSSLBinPath (file) {
 
-		fs.pfileExists(path).then(function(exists) {
-
-			if (exists) {
-				_openSSLBinPath = path;
-			}
-			else {
-				throw this.constructor.name + "/setOpenSSLBinPath : '" + path + "' does not exist.";
-			}
-		
-		}).catch(function(err) {
-			throw this.constructor.name + "/setOpenSSLBinPath : " + err;
-		});
+		if (fs.isFileSync(file)) {
+			_openSSLBinPath = path.normalize(file);
+		}
+		else {
+			throw this.constructor.name + "/setOpenSSLBinPath : '" + file + "' does not exist.";
+		}
 
 		return this;
 
 	}
 
-	setOpenSSLConfPath (path) {
+	setOpenSSLConfPath (file) {
 
-		fs.pfileExists(path).then(function(exists) {
-
-			if (exists) {
-				_openSSLConfPath = path;
-			}
-			else {
-				throw this.constructor.name + "/setOpenSSLConfPath : '" + path + "' does not exist.";
-			}
-		
-		}).catch(function(err) {
-			throw this.constructor.name + "/setOpenSSLConfPath : " + err;
-		});
+		if (fs.isFileSync(file)) {
+			_openSSLConfPath = path.normalize(file);
+		}
+		else {
+			throw this.constructor.name + "/setOpenSSLConfPath : '" + file + "' does not exist.";
+		}
 
 		return this;
 		
 	}
 
-	createPrivateKey (keyFilePath) {
+	createPrivateKey (keyFilePath, size) {
 
 		let that = this;
 
@@ -109,70 +97,45 @@ module.exports = class SimpleSSL {
 
 			try {
 
-				fs.pfileExists(keyFilePath).then(function(exists) {
+				size = ('undefined' === typeof size) ? 2048 : size;
+				size = ('small' === size) ? 2048 : size;
+				size = ('medium' === size) ? 3072 : size;
+				size = ('large' === size) ? 4096 : size;
+				size = (size !== 2048 && size !== 3072 && size !== 4096) ? 2048 : size;
+
+				fs.isFileProm(keyFilePath).then(function(exists) {
 
 					if (exists) {
-						
-						fs.readFile(keyFilePath, { encoding : 'utf8' } , function (err, data) {
-
-							if (err) {
-								reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
-							}
-							else {
-								resolve({ privateKey : data });
-							}
-
-						});
-
+						return fs.readFileProm(keyFilePath, 'utf8');
 					}
 					else {
 						
 						let directory = path.dirname(keyFilePath);
 
-						fs.amkdirp(directory, function(err) {
+						return fs.mkdirpProm(directory).then(function() {
 
-							if (err) {
-								reject(that.constructor.name + "/createPrivateKey : Impossible to create the security key's directory (" + directory + ").");
+							let options = [
+								'genrsa',
+								'-out', keyFilePath,
+								size
+							];
+
+							if (_openSSLConfPath) {
+								options.push('-config', _openSSLConfPath);
 							}
-							else {
 
-								let options = [
-									'genrsa',
-									'-out', keyFilePath,
-									4096
-								];
-
-								if (_openSSLConfPath) {
-									options.push('-config');
-									options.push(_openSSLConfPath);
-								}
-
-								_wrapper(options).then(function() {
-
-									fs.readFile(keyFilePath, { encoding : 'utf8' } , function (err, data) {
-
-										if (err) {
-											reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
-										}
-										else {
-											resolve({ privateKey : data });
-										}
-
-									});
-
-								})
-								.catch(function(err) {
-									reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
-								});
-
-							}
+							return _wrapper(options).then(function() {
+								return fs.readFileProm(keyFilePath, 'utf8');
+							});
 
 						});
 
 					}
 				
+				}).then(function(data) {
+					resolve({ privateKey : data });
 				}).catch(function(err) {
-					throw this.constructor.name + "/createPrivateKey : " + err;
+					reject(that.constructor.name + "/createPrivateKey : " + ((err.message) ? err.message : err));
 				});
 
 			}
@@ -184,7 +147,7 @@ module.exports = class SimpleSSL {
 
 	}
 
-	createCSR (keyFilePath, CSRFilePath) {
+	createCSR (keyFilePath, CSRFilePath, size) {
 
 		let that = this;
 
@@ -192,77 +155,45 @@ module.exports = class SimpleSSL {
 			
 			try {
 
-				that.createPrivateKey(keyFilePath).then(function(keys) {
+				that.createPrivateKey(keyFilePath, (size) ? size : null).then(function(keys) {
 
-					fs.pfileExists(CSRFilePath).then(function(exists) {
+					fs.isFileProm(CSRFilePath).then(function(exists) {
 
 						if (exists) {
-							
-							fs.readFile(CSRFilePath, { encoding : 'utf8' } , function (err, data) {
-
-								if (err) {
-									reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
-								}
-								else {
-									resolve({ privateKey : keys.privateKey, CSR : data });
-								}
-
-							});
-
+							return fs.readFileProm(CSRFilePath, 'utf8');
 						}
 						else {
 
 							let directory = path.dirname(CSRFilePath);
 
-							fs.amkdirp(directory, function(err) {
+							return fs.mkdirpProm(directory).then(function() {
 
-								if (err) {
-									reject(that.constructor.name + "/createCSR : Impossible to create the security key's directory (" + directory + ").");
+								let options = [
+									'req',
+									'-new',
+									'-key', keyFilePath,
+									'-out', CSRFilePath
+								];
+
+								if (_openSSLConfPath) {
+									options.push('-config', _openSSLConfPath);
 								}
-								else {
 
-									let options = [
-										'req',
-										'-new',
-										'-key', keyFilePath,
-										'-out', CSRFilePath
-									];
-
-									if (_openSSLConfPath) {
-										options.push('-config');
-										options.push(_openSSLConfPath);
-									}
-
-									_wrapper(options).then(function() {
-
-										fs.readFile(CSRFilePath, { encoding : 'utf8' } , function (err, data) {
-
-											if (err) {
-												reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
-											}
-											else {
-												resolve({ privateKey : keys.privateKey, CSR : data });
-											}
-
-										});
-
-									})
-									.catch(function(err) {
-										reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
-									});
-
-								}
+								return _wrapper(options).then(function() {
+									return fs.readFileProm(CSRFilePath, 'utf8');
+								});
 
 							});
 
 						}
 
+					}).then(function(data) {
+						resolve({ privateKey : keys.privateKey, CSR : data });
 					}).catch(function(err) {
-						throw this.constructor.name + "/createCSR : " + err;
+						reject(that.constructor.name + "/createCSR : " + ((err.message) ? err.message : err));
 					});
-
-				})
-				.catch(reject);
+				
+				}).catch(reject);
 
 			}
 			catch (e) {
@@ -273,7 +204,7 @@ module.exports = class SimpleSSL {
 
 	}
 
-	createCertificate (keyFilePath, CSRFilePath, CRTFilePath) {
+	createCertificate (keyFilePath, CSRFilePath, CRTFilePath, size) {
 		
 		let that = this;
 
@@ -281,74 +212,43 @@ module.exports = class SimpleSSL {
 
 			try {
 
-				that.createCSR(keyFilePath, CSRFilePath).then(function(keys) {
+				that.createCSR(keyFilePath, CSRFilePath, (size) ? size : null).then(function(keys) {
 
-					fs.pfileExists(CRTFilePath).then(function(exists) {
+					fs.isFileProm(CRTFilePath).then(function(exists) {
 
 						if (exists) {
-							
-							fs.readFile(CRTFilePath, { encoding : 'utf8' } , function (err, certificate) {
-
-								if (err) {
-									reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
-								}
-								else {
-									resolve({ privateKey : keys.privateKey, CSR : keys.CSR, certificate : certificate });
-								}
-
-							});
-
+							return fs.readFile(CRTFilePath, 'utf8');
 						}
 						else {
 
 							let directory = path.dirname(CRTFilePath);
 
-							fs.amkdirp(directory, function(err) {
+							return fs.mkdirpProm(directory).then(function() {
 
-								if (err) {
-									reject(that.constructor.name + "/createCertificate : Impossible to create the security key's directory (" + directory + ").");
-								}
-								else {
+								let options = [
+									'x509',
+									'-req',
+									'-days', '365',
+									'-in', CSRFilePath,
+									'-signkey', keyFilePath,
+									'-out', CRTFilePath
+								];
 
-									let options = [
-										'x509',
-										'-req',
-										'-days', '365',
-										'-in', CSRFilePath,
-										'-signkey', keyFilePath,
-										'-out', CRTFilePath
-									];
-
-									_wrapper(options).then(function() {
-
-										fs.readFile(CRTFilePath, { encoding : 'utf8' } , function (err, certificate) {
-
-											if (err) {
-												reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
-											}
-											else {
-												resolve({ privateKey : keys.privateKey, CSR : keys.CSR, certificate : certificate });
-											}
-
-										});
-
-									})
-									.catch(function(err) {
-										reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
-									});
-
-								}
+								return _wrapper(options).then(function() {
+									return fs.readFileProm(CRTFilePath, 'utf8');
+								});
 
 							});
 
 						}
 
+					}).then(function(data) {
+						resolve({ privateKey : keys.privateKey, CSR : keys.CSR, certificate : data });
 					}).catch(function(err) {
-						throw this.constructor.name + "/createCertificate : " + err;
+						reject(that.constructor.name + "/createCertificate : " + ((err.message) ? err.message : err));
 					});
-
-				})
-				.catch(reject);
+				
+				}).catch(reject);
 
 			}
 			catch (e) {

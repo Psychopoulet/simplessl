@@ -218,7 +218,7 @@ function testServer(keys) {
 
 // run
 
-	fs.prmdirp(crtpath).then(function() {
+	fs.rmdirpProm(crtpath).then(function() {
 		return testErrors();
 	}).then(function() {
 
@@ -233,7 +233,7 @@ function testServer(keys) {
 	}).then(function(keys) {
 		return testServer(keys);
 	}).then(function() {
-		return fs.prmdirp(crtpath);
+		return fs.rmdirpProm(crtpath);
 	}).catch(function(err) {
 		console.log('tests interruption', err);
 	});
