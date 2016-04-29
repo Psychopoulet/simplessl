@@ -26,8 +26,7 @@ function _wrapper (tabArgs) {
 				resolve();
 			}
 
-		})
-		.stderr.on('data', function (msg) {
+		}).stderr.on('data', function (msg) {
 
 			if (msg) {
 
@@ -110,9 +109,7 @@ module.exports = class SimpleSSL {
 					}
 					else {
 						
-						let directory = path.dirname(keyFilePath);
-
-						return fs.mkdirpProm(directory).then(function() {
+						return fs.mkdirpProm(path.dirname(keyFilePath)).then(function() {
 
 							let options = [
 								'genrsa',
@@ -164,9 +161,7 @@ module.exports = class SimpleSSL {
 						}
 						else {
 
-							let directory = path.dirname(CSRFilePath);
-
-							return fs.mkdirpProm(directory).then(function() {
+							return fs.mkdirpProm(path.dirname(CSRFilePath)).then(function() {
 
 								let options = [
 									'req',
@@ -221,9 +216,7 @@ module.exports = class SimpleSSL {
 						}
 						else {
 
-							let directory = path.dirname(CRTFilePath);
-
-							return fs.mkdirpProm(directory).then(function() {
+							return fs.mkdirpProm(path.dirname(CRTFilePath)).then(function() {
 
 								let options = [
 									'x509',

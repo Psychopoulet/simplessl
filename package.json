@@ -1,6 +1,6 @@
 {
   "name": "simplessl",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "A basic ssl manager",
   "main": "main.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "url": "https://github.com/Psychopoulet/simplessl/issues"
   },
   "dependencies": {
-    "simplefs": "^2.0.2"
+    "simplefs": "^2.1.0"
   },
   "devDependencies": {},
   "homepage": "https://github.com/Psychopoulet/simplessl#readme"
