@@ -68,7 +68,7 @@ module.exports = class SimpleSSL {
 			_openSSLBinPath = path.normalize(file);
 		}
 		else {
-			throw this.constructor.name + "/setOpenSSLBinPath : '" + file + "' does not exist.";
+			throw new Error(this.constructor.name + "/setOpenSSLBinPath : '" + file + "' does not exist.");
 		}
 
 		return this;
@@ -81,7 +81,7 @@ module.exports = class SimpleSSL {
 			_openSSLConfPath = path.normalize(file);
 		}
 		else {
-			throw this.constructor.name + "/setOpenSSLConfPath : '" + file + "' does not exist.";
+			throw new Error(this.constructor.name + "/setOpenSSLConfPath : '" + file + "' does not exist.");
 		}
 
 		return this;

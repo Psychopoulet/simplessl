@@ -2,7 +2,12 @@
 
 // deps
 
-	const path = require('path'), SimpleSSL = require('../main.js'), fs = require('simplefs');
+	const 	path = require('path'),
+			assert = require('assert'),
+
+			fs = require('simplefs'),
+
+			SimpleSSL = require('../main.js');
 
 // private
 
@@ -14,227 +19,91 @@
 
 // tests
 
-function testErrors() {
+describe('errors', function() {
 
-	return new Promise(function(resolve, reject) {
+	before(function(done) {
+		fs.rmdirpProm(crtpath).then(done).catch(done);
+	});
 
-		try {
+	it('should check type value', function() {
+		assert.throws(function() { SSL.setOpenSSLBinPath('test'); }, Error, "check type value does not throw an error");
+		assert.throws(function() { SSL.setOpenSSLConfPath('test'); }, Error, "check type value does not throw an error");
+	});
 
-			console.log("");
-			console.log("----------------");
-			console.log("test errors");
-			console.log("----------------");
-			console.log("");
+});
 
-			console.log("must be == 'SimpleSSL/setOpenSSLBinPath : 'test' does not exist.' :");
+describe('create private key', function() {
 
-				try {
-					SSL.setOpenSSLBinPath('test');
-				}
-				catch(e) {
-					console.log(e);
-				}
-				
-			console.log("");
-			console.log("must be == 'SimpleSSL/setOpenSSLConfPath : 'test' does not exist.' :");
+	it('should create private key', function(done) {
 
-				try {
-					SSL.setOpenSSLConfPath('test');
-				}
-				catch(e) {
-					console.log(e);
-				}
+		SSL.createPrivateKey(serverkey).then(function(keys) {
 
-			console.log("");
-			console.log("----------------");
-			console.log("");
+			assert.strictEqual('string', typeof keys.privateKey, "private key was not generated");
+			done();
 
-			resolve();
-
-		}
-		catch (e) {
-			console.log(e);
-			reject();
-		}
+		}).catch(done);
 
 	});
 
-}
+});
 
-function testCreatePrivateKey() {
+describe('create CSR', function() {
 
-	return new Promise(function(resolve, reject) {
+	it('should create CSR', function(done) {
 
-		try {
+		SSL.createCSR(serverkey, servercsr).then(function(keys) {
 
-			console.log("");
-			console.log("----------------");
-			console.log("test createPrivateKey");
-			console.log("----------------");
-			console.log("");
+			assert.strictEqual('string', typeof keys.privateKey, "private key was not generated");
+			assert.strictEqual('string', typeof keys.CSR, "private key was not generated");
+			done();
 
-			console.log("must be == { privateKey : <privateKey> } :");
-			
-			SSL.createPrivateKey(serverkey).then(function(keys) {
-
-				console.log(keys);
-
-				console.log("");
-				console.log("----------------");
-				console.log("");
-				console.log("");
-
-				resolve();
-
-			}).catch(reject);
-
-		}
-		catch (e) {
-			console.log(e);
-			reject();
-		}
+		}).catch(done);
 
 	});
 
-}
+});
 
-function testCreateCSR() {
+describe('create certificate', function() {
 
-	return new Promise(function(resolve, reject) {
+	it('should create certificate', function(done) {
 
-		try {
+		SSL.createCertificate(serverkey, servercsr, servercrt).then(function(keys) {
 
-			console.log("");
-			console.log("----------------");
-			console.log("test createCSR");
-			console.log("----------------");
-			console.log("");
+			assert.strictEqual('string', typeof keys.privateKey, "private key was not generated");
+			assert.strictEqual('string', typeof keys.CSR, "private key was not generated");
+			assert.strictEqual('string', typeof keys.certificate, "certificate was not generated");
+			done();
 
-			console.log("must be == { privateKey : <privateKey>, CSR : <CSR> } :");
-			
-			SSL.createCSR(serverkey, servercsr).then(function(keys) {
-
-				console.log(keys);
-
-				console.log("");
-				console.log("----------------");
-				console.log("");
-				console.log("");
-
-				resolve();
-
-			}).catch(reject);
-
-		}
-		catch (e) {
-			console.log(e);
-			reject();
-		}
+		}).catch(done);
 
 	});
 
-}
+});
 
-function testCreateCertificate() {
+describe('server', function() {
 
-	return new Promise(function(resolve, reject) {
-
-		try {
-
-			console.log("----------------");
-			console.log("test createCertificate");
-			console.log("----------------");
-			console.log("");
-
-			console.log("must be == { privateKey : <privateKey>, CSR : <CSR>, certificate : <certificate> } :");
-			
-			SSL.createCertificate(serverkey, servercsr, servercrt).then(function(keys) {
-
-				console.log(keys);
-
-				console.log("");
-				console.log("----------------");
-				console.log("");
-				console.log("");
-
-				resolve(keys);
-
-			}).catch(reject);
-
-		}
-		catch (e) {
-			console.log(e);
-			reject();
-		}
-
+	after(function(done) {
+		fs.rmdirpProm(crtpath).then(done).catch(done);
 	});
 
-}
+	it('should check type value', function(done) {
 
-function testServer(keys) {
+		SSL.createCertificate(serverkey, servercsr, servercrt).then(function(keys) {
 
-	return new Promise(function(resolve, reject) {
-
-		try {
-
-			console.log("----------------");
-			console.log("test server on 8080 port");
-			console.log("----------------");
-			console.log("");
-
-			console.log("must be == 'running' :");
+			assert.strictEqual('string', typeof keys.privateKey, "private key was not generated");
+			assert.strictEqual('string', typeof keys.CSR, "private key was not generated");
+			assert.strictEqual('string', typeof keys.certificate, "certificate was not generated");
 
 			let server = require('https').createServer({
 				key: keys.privateKey,
 				cert: keys.certificate
-			}, function(req, res) {
-				res.writeHead(200);
-				res.end('hello world\n');
-			})
-			.listen(8080, function() {
-
-				console.log("running");
-
-				console.log("");
-				console.log("----------------");
-				console.log("");
-				console.log("");
-
+			}).listen(8080, function() {
 				server.close();
-
-				resolve();
-
+				done();
 			});
 
-		}
-		catch (e) {
-			console.log(e);
-			reject();
-		}
+		}).catch(done);
 
 	});
 
-}
-
-// run
-
-	fs.rmdirpProm(crtpath).then(function() {
-		return testErrors();
-	}).then(function() {
-
-		SSL.setOpenSSLConfPath('C:\\Program Files (x86)\\GnuWin32\\share\\openssl.cnf');
-
-		return testCreatePrivateKey();
-
-	}).then(function() {
-		return testCreateCSR();
-	}).then(function() {
-		return testCreateCertificate();
-	}).then(function(keys) {
-		return testServer(keys);
-	}).then(function() {
-		return fs.rmdirpProm(crtpath);
-	}).catch(function(err) {
-		console.log('tests interruption', err);
-	});
-	
+});
