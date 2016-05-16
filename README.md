@@ -67,7 +67,7 @@ SSL.createCertificate(serverkey, servercsr, servercrt).then(function(data) {
 ## Tests
 
 ```bash
-$ node tests/tests.js
+$ mocha tests/tests.js
 ```
 
 ## License
