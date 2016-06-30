@@ -67,7 +67,7 @@ SSL.createCertificate(serverkey, servercsr, servercrt).then(function(data) {
 ## Tests
 
 ```bash
-$ mocha tests/tests.js
+$ gulp
 ```
 
 ## License
