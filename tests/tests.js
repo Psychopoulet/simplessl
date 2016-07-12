@@ -25,9 +25,24 @@ describe("errors", function() {
 		fs.rmdirpProm(crtpath).then(done).catch(done);
 	});
 
-	it("should check type value", function() {
-		assert.throws(function() { SSL.setOpenSSLBinPath("test"); }, Error, "check type value does not throw an error");
-		assert.throws(function() { SSL.setOpenSSLConfPath("test"); }, Error, "check type value does not throw an error");
+	it("should check setOpenSSLBinPath type value", function(done) {
+
+		SSL.setOpenSSLBinPath("test").then(function() {
+			done("check type value does not throw an error");
+		}).catch(function() {
+			done();
+		});
+
+	});
+
+	it("should check setOpenSSLConfPath type value", function(done) {
+		
+		SSL.setOpenSSLConfPath("test").then(function() {
+			done("check type value does not throw an error");
+		}).catch(function() {
+			done();
+		});
+
 	});
 
 });
