@@ -15,11 +15,11 @@ $ npm install simplessl
 
 ## Doc
 
-   * setOpenSSLBinPath(string file) : return Promise instance // set a specific path to the OpenSSL software
-   * setOpenSSLConfPath(string file) : return Promise instance // set a specific path to the OpenSSL configuration
-   * createPrivateKey(string keyfile [, string|number keysize]) : return Promise instance
-   * createCSR(string keyfile, string csrfile [, string|number keysize]) : return Promise instance
-   * createCertificate(string keyfile, string csrfile, string certificatefile [, string|number keysize]) : return Promise instance
+   * ``` setOpenSSLBinPath(string file) : Promise ``` set a specific path to the OpenSSL software
+   * ``` setOpenSSLConfPath(string file) : Promise ``` set a specific path to the OpenSSL configuration
+   * ``` createPrivateKey(string keyfile [, string|number keysize]) : Promise ```
+   * ``` createCSR(string keyfile, string csrfile [, string|number keysize]) : Promise ```
+   * ``` createCertificate(string keyfile, string csrfile, string certificatefile [, string|number keysize]) : Promise ```
 
 "keysize" must be equal to : small | 2048 | medium | 3072 | large | 4096
 
@@ -28,7 +28,6 @@ $ npm install simplessl
 ## Examples
 
 ```js
-
 const SimpleSSL = require('simplessl');
 
 var SSL = new SimpleSSL(),
@@ -41,7 +40,7 @@ var SSL = new SimpleSSL(),
 // this function will automatically apply SSL.createCSR && SSL.createPrivateKey functions
 // if serverkey or servercsr does not exist
 
-SSL.createCertificate(serverkey, servercsr, servercrt).then(function(data) {
+SSL.createCertificate(serverkey, servercsr, servercrt).then((data) => {
 
    console.log(data);
 
@@ -57,11 +56,9 @@ SSL.createCertificate(serverkey, servercsr, servercrt).then(function(data) {
       console.log(e);
    }
 
-})
-.catch(function(err) {
+}).catch((err) => {
    console.log(err);
 });
-
 ```
 
 ## Tests
