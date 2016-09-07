@@ -1,6 +1,6 @@
 {
   "name": "simplessl",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A basic ssl manager",
   "main": "lib/main.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "url": "https://github.com/Psychopoulet/simplessl/issues"
   },
   "dependencies": {
-    "node-promfs": "^0.1.0"
+    "node-promfs": "^0.2.0"
   },
   "devDependencies": {
     "gulp": "^3.9.0",

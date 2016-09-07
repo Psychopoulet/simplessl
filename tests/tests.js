@@ -19,27 +19,25 @@
 
 // tests
 
-describe("errors", function() {
+describe("errors", () => {
 
-	before(function(done) {
-		fs.rmdirpProm(crtpath).then(done).catch(done);
-	});
+	before(() => { return fs.rmdirpProm(crtpath); });
 
-	it("should check setOpenSSLBinPath type value", function(done) {
+	it("should check setOpenSSLBinPath type value", (done) => {
 
-		SSL.setOpenSSLBinPath("test").then(function() {
+		SSL.setOpenSSLBinPath("test").then(() => {
 			done("check type value does not throw an error");
-		}).catch(function() {
+		}).catch(() => {
 			done();
 		});
 
 	});
 
-	it("should check setOpenSSLConfPath type value", function(done) {
+	it("should check setOpenSSLConfPath type value", (done) => {
 		
-		SSL.setOpenSSLConfPath("test").then(function() {
+		SSL.setOpenSSLConfPath("test").then(() => {
 			done("check type value does not throw an error");
-		}).catch(function() {
+		}).catch(() => {
 			done();
 		});
 
@@ -47,63 +45,58 @@ describe("errors", function() {
 
 });
 
-describe("create private key", function() {
+describe("create private key", () => {
 
-	it("should create private key", function(done) {
+	it("should create private key", () => {
 
-		SSL.createPrivateKey(serverkey).then(function(keys) {
+		return SSL.createPrivateKey(serverkey).then((keys) => {
 
 			assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
-			done();
 
-		}).catch(done);
+		});
 
 	});
 
 });
 
-describe("create CSR", function() {
+describe("create CSR", () => {
 
-	it("should create CSR", function(done) {
+	it("should create CSR", () => {
 
-		SSL.createCSR(serverkey, servercsr).then(function(keys) {
+		return SSL.createCSR(serverkey, servercsr).then((keys) => {
 
 			assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
 			assert.strictEqual("string", typeof keys.CSR, "private key was not generated");
-			done();
 
-		}).catch(done);
+		});
 
 	});
 
 });
 
-describe("create certificate", function() {
+describe("create certificate", () => {
 
-	it("should create certificate", function(done) {
+	it("should create certificate", () => {
 
-		SSL.createCertificate(serverkey, servercsr, servercrt).then(function(keys) {
+		return SSL.createCertificate(serverkey, servercsr, servercrt).then((keys) => {
 
 			assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
 			assert.strictEqual("string", typeof keys.CSR, "private key was not generated");
 			assert.strictEqual("string", typeof keys.certificate, "certificate was not generated");
-			done();
 
-		}).catch(done);
+		});
 
 	});
 
 });
 
-describe("server", function() {
+describe("server", () => {
 
-	after(function(done) {
-		fs.rmdirpProm(crtpath).then(done).catch(done);
-	});
+	before(() => { return fs.rmdirpProm(crtpath); });
 
-	it("should check type value", function(done) {
+	it("should check type value", (done) => {
 
-		SSL.createCertificate(serverkey, servercsr, servercrt).then(function(keys) {
+		SSL.createCertificate(serverkey, servercsr, servercrt).then((keys) => {
 
 			assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
 			assert.strictEqual("string", typeof keys.CSR, "private key was not generated");
@@ -112,7 +105,7 @@ describe("server", function() {
 			let server = require("https").createServer({
 				key: keys.privateKey,
 				cert: keys.certificate
-			}).listen(8080, function() {
+			}).listen(8080, () => {
 				server.close();
 				done();
 			});
