@@ -25,7 +25,7 @@ describe("errors", () => {
 
 	it("should check setOpenSSLBinPath type value", (done) => {
 
-		SSL.setOpenSSLBinPath("test").then(() => {
+		SimpleSSL.setOpenSSLBinPath("test").then(() => {
 			done("check type value does not throw an error");
 		}).catch(() => {
 			done();
@@ -35,7 +35,7 @@ describe("errors", () => {
 
 	it("should check setOpenSSLConfPath type value", (done) => {
 		
-		SSL.setOpenSSLConfPath("test").then(() => {
+		SimpleSSL.setOpenSSLConfPath("test").then(() => {
 			done("check type value does not throw an error");
 		}).catch(() => {
 			done();

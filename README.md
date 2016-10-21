@@ -15,8 +15,8 @@ $ npm install simplessl
 
 ## Doc
 
-   * ``` setOpenSSLBinPath(string file) : Promise ``` set a specific path to the OpenSSL software
-   * ``` setOpenSSLConfPath(string file) : Promise ``` set a specific path to the OpenSSL configuration
+   * ``` static setOpenSSLBinPath(string file) : Promise ``` set a specific path to the OpenSSL software
+   * ``` static setOpenSSLConfPath(string file) : Promise ``` set a specific path to the OpenSSL configuration
    * ``` createPrivateKey(string keyfile [, string|number keysize]) : Promise ```
    * ``` createCSR(string keyfile, string csrfile [, string|number keysize]) : Promise ```
    * ``` createCertificate(string keyfile, string csrfile, string certificatefile [, string|number keysize]) : Promise ```
