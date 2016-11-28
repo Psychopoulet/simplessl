@@ -3,11 +3,10 @@
 // deps
 
 	const 	path = require("path"),
+			fs = require("fs"),
 			assert = require("assert"),
 
-			fs = require("node-promfs"),
-
-			SimpleSSL = require(path.join(__dirname, "..", "lib", "main.js"));
+			SimpleSSL = require(path.join(__dirname, "..", "dist", "main.js"));
 
 // private
 
@@ -17,16 +16,179 @@
 			servercsr = path.join(crtpath, "server.csr"),
 			servercrt = path.join(crtpath, "server.crt");
 
+	// methods
+
+		function _createDirectory(done) {
+
+			try {
+
+				fs.stat(crtpath, (err, stats) => {
+
+					if (!err && stats && stats.isDirectory()) {
+						done();
+					}
+					else {
+						fs.mkdir(crtpath, done);
+					}
+
+				});
+
+			}
+			catch(e) {
+				fs.mkdir(crtpath, done);
+			}
+
+		}
+
+		function _removeDirectory(done) {
+
+			new Promise((resolve) => {
+
+				try {
+
+					fs.stat(crtpath, (err, stats) => {
+						resolve(!err && (stats && stats.isDirectory()));
+					});
+
+				}
+				catch(e) {
+					resolve(false);
+				}
+
+			}).then((exists) => {
+
+				if (!exists) {
+					return Promise.resolve();
+				}
+				else {
+
+					return new Promise((resolve) => {
+
+						try {
+
+							fs.stat(serverkey, (err, stats) => {
+								resolve(!err && (stats && stats.isFile()));
+							});
+
+						}
+						catch(e) {
+							resolve(false);
+						}
+
+					}).then((exists) => {
+
+						if (!exists) {
+							return Promise.resolve();
+						}
+						else {
+
+							return new Promise((resolve, reject) => {
+
+								fs.unlink(serverkey, (err) => {
+									if (err) { reject(err); } else { resolve(); }
+								});
+
+							});
+
+						}
+
+					}).then(() => {
+
+						return new Promise((resolve) => {
+
+							try {
+
+								fs.stat(servercsr, (err, stats) => {
+									resolve(!err && (stats && stats.isFile()));
+								});
+
+							}
+							catch(e) {
+								resolve(false);
+							}
+
+						}).then((exists) => {
+
+							if (!exists) {
+								return Promise.resolve();
+							}
+							else {
+
+								return new Promise((resolve, reject) => {
+
+									fs.unlink(servercsr, (err) => {
+										if (err) { reject(err); } else { resolve(); }
+									});
+
+								});
+
+							}
+
+						});
+
+					}).then(() => {
+
+						return new Promise((resolve) => {
+
+							try {
+
+								fs.stat(servercrt, (err, stats) => {
+									resolve(!err && (stats && stats.isFile()));
+								});
+
+							}
+							catch(e) {
+								resolve(false);
+							}
+
+						}).then((exists) => {
+
+							if (!exists) {
+								return Promise.resolve();
+							}
+							else {
+
+								return new Promise((resolve, reject) => {
+
+									fs.unlink(servercrt, (err) => {
+										if (err) { reject(err); } else { resolve(); }
+									});
+
+								});
+
+							}
+
+						});
+
+					}).then(() => {
+
+						return new Promise((resolve, reject) => {
+
+							fs.rmdir(crtpath, (err) => {
+								if (err) { reject(err); } else { resolve(); }
+							});
+						
+						});
+
+					});
+
+				}
+				
+			}).then(done).catch(done);
+
+		}
+
 // tests
 
 describe("errors", () => {
 
-	before(() => { return fs.rmdirpProm(crtpath); });
+	before(_createDirectory);
+	after(_removeDirectory);
 
 	it("should check setOpenSSLBinPath type value", (done) => {
 
 		SimpleSSL.setOpenSSLBinPath("test").then(() => {
-			done("check type value does not throw an error");
+			done(new Error("check type value does not throw an error"));
 		}).catch(() => {
 			done();
 		});
@@ -36,9 +198,66 @@ describe("errors", () => {
 	it("should check setOpenSSLConfPath type value", (done) => {
 		
 		SimpleSSL.setOpenSSLConfPath("test").then(() => {
-			done("check type value does not throw an error");
+			done(new Error("check type value does not throw an error"));
 		}).catch(() => {
 			done();
+		});
+
+	});
+
+	it("should check createPrivateKey", (done) => {
+
+		SSL.createPrivateKey().then(() => {
+			done(new Error("check empty value does not throw an error"));
+		}).catch((err) => {
+
+			assert.strictEqual(true, err instanceof ReferenceError, "check empty value does not throw an error");
+			
+			SSL.createPrivateKey(false).then(() => {
+				done(new Error("check wrong type value does not throw an error"));
+			}).catch((err) => {
+				assert.strictEqual(true, err instanceof TypeError, "check wrong value does not throw an error");
+				done();
+			});
+
+		});
+
+	});
+
+	it("should check createCSR", (done) => {
+
+		SSL.createCSR(serverkey).then(() => {
+			done(new Error("check empty value does not throw an error"));
+		}).catch((err) => {
+
+			assert.strictEqual(true, err instanceof ReferenceError, "check empty value does not throw an error");
+			
+			SSL.createCSR(serverkey, false).then(() => {
+				done(new Error("check wrong type value does not throw an error"));
+			}).catch((err) => {
+				assert.strictEqual(true, err instanceof TypeError, "check wrong value does not throw an error");
+				done();
+			});
+
+		});
+
+	});
+
+	it("should check createCertificate", (done) => {
+
+		SSL.createCertificate(serverkey, servercsr).then(() => {
+			done(new Error("check empty value does not throw an error"));
+		}).catch((err) => {
+
+			assert.strictEqual(true, err instanceof ReferenceError, "check empty value does not throw an error");
+			
+			SSL.createCertificate(serverkey, servercsr, false).then(() => {
+				done(new Error("check wrong type value does not throw an error"));
+			}).catch((err) => {
+				assert.strictEqual(true, err instanceof TypeError, "check wrong value does not throw an error");
+				done();
+			});
+
 		});
 
 	});
@@ -46,6 +265,9 @@ describe("errors", () => {
 });
 
 describe("create private key", () => {
+
+	before(_createDirectory);
+	after(_removeDirectory);
 
 	it("should create private key", () => {
 
@@ -61,6 +283,9 @@ describe("create private key", () => {
 
 describe("create CSR", () => {
 
+	before(_createDirectory);
+	after(_removeDirectory);
+
 	it("should create CSR", () => {
 
 		return SSL.createCSR(serverkey, servercsr).then((keys) => {
@@ -75,6 +300,9 @@ describe("create CSR", () => {
 });
 
 describe("create certificate", () => {
+
+	before(_createDirectory);
+	after(_removeDirectory);
 
 	it("should create certificate", () => {
 
@@ -92,7 +320,8 @@ describe("create certificate", () => {
 
 describe("server", () => {
 
-	before(() => { return fs.rmdirpProm(crtpath); });
+	before(_createDirectory);
+	after(_removeDirectory);
 
 	it("should check type value", (done) => {
 
