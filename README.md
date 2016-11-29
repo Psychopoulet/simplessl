@@ -1,5 +1,5 @@
 # simplessl
-A basic ssl manager
+A basic openssl manager
 
 
 ## Installation
@@ -15,8 +15,8 @@ $ npm install simplessl
 
 ## Doc
 
-   * ``` setOpenSSLBinPath(string file) : Promise ``` set a specific path to the OpenSSL software
-   * ``` setOpenSSLConfPath(string file) : Promise ``` set a specific path to the OpenSSL configuration
+   * ``` static setOpenSSLBinPath(string file) : Promise ``` set a specific path to the OpenSSL software
+   * ``` static setOpenSSLConfPath(string file) : Promise ``` set a specific path to the OpenSSL configuration
    * ``` createPrivateKey(string keyfile [, string|number keysize]) : Promise ```
    * ``` createCSR(string keyfile, string csrfile [, string|number keysize]) : Promise ```
    * ``` createCertificate(string keyfile, string csrfile, string certificatefile [, string|number keysize]) : Promise ```
@@ -40,21 +40,25 @@ var SSL = new SimpleSSL(),
 // this function will automatically apply SSL.createCSR && SSL.createPrivateKey functions
 // if serverkey or servercsr does not exist
 
-SSL.createCertificate(serverkey, servercsr, servercrt).then((data) => {
+SSL.createCertificate(serverkey, servercsr, servercrt).then((keys) => {
 
-   console.log(data);
+   console.log(keys);
 
-   try {
+   return new Promise((resolve, reject) => {
 
-      require('https').createServer({
-         key: data.privateKey,
-         cert: data.certificate
-      });
+      try {
 
-   }
-   catch(e) {
-      console.log(e);
-   }
+         require('https').createServer({
+            key: keys.privateKey,
+            cert: keys.certificate
+         }).listen(8000, resolve);
+
+      }
+      catch(e) {
+         reject();
+      }
+
+   });
 
 }).catch((err) => {
    console.log(err);
