@@ -40,21 +40,25 @@ var SSL = new SimpleSSL(),
 // this function will automatically apply SSL.createCSR && SSL.createPrivateKey functions
 // if serverkey or servercsr does not exist
 
-SSL.createCertificate(serverkey, servercsr, servercrt).then((data) => {
+SSL.createCertificate(serverkey, servercsr, servercrt).then((keys) => {
 
-   console.log(data);
+   console.log(keys);
 
-   try {
+   return new Promise((resolve, reject) => {
 
-      require('https').createServer({
-         key: data.privateKey,
-         cert: data.certificate
-      });
+      try {
 
-   }
-   catch(e) {
-      console.log(e);
-   }
+         require('https').createServer({
+            key: keys.privateKey,
+            cert: keys.certificate
+         }).listen(8000, resolve);
+
+      }
+      catch(e) {
+         reject();
+      }
+
+   });
 
 }).catch((err) => {
    console.log(err);
