@@ -55,7 +55,7 @@ SSL.createCertificate(serverkey, servercsr, servercrt).then((keys) => {
 
       }
       catch(e) {
-         reject();
+         reject(e);
       }
 
    });
