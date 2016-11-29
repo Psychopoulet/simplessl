@@ -1,5 +1,5 @@
 # simplessl
-A basic ssl manager
+A basic openssl manager
 
 
 ## Installation

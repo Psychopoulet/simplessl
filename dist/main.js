@@ -48,6 +48,35 @@ function _isFileProm(file) {
 	});
 }
 
+function _isDirectoryProm(dir) {
+
+	return new Promise(function (resolve, reject) {
+
+		if ("undefined" === typeof dir) {
+			reject(new ReferenceError("\"dir\" does not exists"));
+		} else if ("string" !== typeof dir) {
+			reject(new TypeError("\"dir\" is not a string"));
+		} else {
+
+			dir = dir.trim();
+
+			if ("" === dir) {
+				reject(new Error("\"dir\" is empty"));
+			} else {
+
+				try {
+
+					fs.stat(dir, function (err, stats) {
+						resolve(!err && stats && stats.isDirectory());
+					});
+				} catch (e) {
+					resolve(false);
+				}
+			}
+		}
+	});
+}
+
 function _readFileProm(file) {
 
 	return new Promise(function (resolve, reject) {
@@ -124,29 +153,13 @@ module.exports = function () {
 					return _readFileProm(keyFilePath, "utf8");
 				} else {
 
-					return new Promise(function (resolve, reject) {
-
-						try {
-
-							fs.stat(path.dirname(keyFilePath), function (err, stats) {
-								resolve(!err && stats && stats.isDirectory());
-							});
-						} catch (e) {
-							resolve(false);
-						}
-					}).then(function (exists) {
+					return _isDirectoryProm(path.dirname(keyFilePath)).then(function (exists) {
 
 						if (!exists) {
 							return Promise.reject(new Error("\"" + path.dirname(keyFilePath) + "\" does not exist"));
 						} else {
 
-							var options = ["genrsa", "-out", keyFilePath, size];
-
-							if (_openSSLConfPath) {
-								options.push("-config", _openSSLConfPath);
-							}
-
-							return _wrapper(options).then(function () {
+							return _wrapper(_openSSLConfPath ? ["genrsa", "-out", keyFilePath, size, "-config", _openSSLConfPath] : ["genrsa", "-out", keyFilePath, size]).then(function () {
 								return _readFileProm(keyFilePath, "utf8");
 							});
 						}
@@ -168,13 +181,7 @@ module.exports = function () {
 						return _readFileProm(CSRFilePath, "utf8");
 					} else {
 
-						var options = ["req", "-new", "-key", keyFilePath, "-out", CSRFilePath];
-
-						if (_openSSLConfPath) {
-							options.push("-config", _openSSLConfPath);
-						}
-
-						return _wrapper(options).then(function () {
+						return _wrapper(_openSSLConfPath ? ["req", "-new", "-key", keyFilePath, "-out", CSRFilePath, "-config", _openSSLConfPath] : ["req", "-new", "-key", keyFilePath, "-out", CSRFilePath]).then(function () {
 							return _readFileProm(CSRFilePath, "utf8");
 						});
 					}
@@ -195,9 +202,7 @@ module.exports = function () {
 						return _readFileProm(CRTFilePath, "utf8");
 					} else {
 
-						var options = ["x509", "-req", "-days", "365", "-in", CSRFilePath, "-signkey", keyFilePath, "-out", CRTFilePath];
-
-						return _wrapper(options).then(function () {
+						return _wrapper(["x509", "-req", "-days", "365", "-in", CSRFilePath, "-signkey", keyFilePath, "-out", CRTFilePath]).then(function () {
 							return _readFileProm(CRTFilePath, "utf8");
 						});
 					}

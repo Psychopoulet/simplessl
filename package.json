@@ -1,11 +1,11 @@
 {
   "name": "simplessl",
   "version": "2.2.0",
-  "description": "A basic ssl manager",
+  "description": "A basic openssl manager",
   "main": "dist/main.js",
   "scripts": {
     "start": "node dist/main.js",
-    "test": "gulp"
+    "test": "npm update && gulp"
   },
   "repository": {
     "type": "git",
