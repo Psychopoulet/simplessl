@@ -15,7 +15,8 @@ var path = require("path"),
 
 // attrs
 
-var _openSSLBinPath, _openSSLConfPath;
+var _openSSLBinPath = null,
+    _openSSLConfPath = null;
 
 // methods
 
@@ -97,31 +98,61 @@ function _wrapper(tabArgs) {
 	return new Promise(function (resolve, reject) {
 
 		var sResult = "",
+		    error = false,
 		    oSpawn = spawn(_openSSLBinPath, tabArgs);
 
-		oSpawn.on("close", function (code) {
+		oSpawn.on("error", function (err) {
 
-			if (code) {
-				reject(new Error(sResult));
+			error = true;
+
+			if ("string" === typeof err) {
+				reject(new Error(err));
+			} else if (err instanceof Buffer) {
+				reject(new Error(err.toString("utf8")));
 			} else {
-				resolve();
+				reject(err);
 			}
-		}).stderr.on("data", function (msg) {
+		}).on("close", function (code) {
 
-			if (msg) {
+			if (!error) {
 
-				msg = msg.toString("binary").trim();
-
-				if ("." != msg && "+" != msg) {
-
-					try {
-						oSpawn.stdin.write("\r\n");
-					} catch (e) {
-						// nothing to do here
-					}
-
-					sResult += msg;
+				if (code) {
+					reject(new Error(sResult));
+				} else {
+					resolve();
 				}
+			}
+		});
+
+		oSpawn.stdout.on("data", function (data) {
+
+			data = data instanceof Buffer ? data.toString("utf8").trim() : data;
+
+			if ("." != data && "+" != data) {
+
+				try {
+					oSpawn.stdin.write("\r\n");
+				} catch (e) {
+					// nothing to do here
+				}
+
+				sResult += data;
+			}
+		});
+
+		oSpawn.stderr.on("data", function (data) {
+
+			data = data instanceof Buffer ? data.toString("utf8").trim() : data;
+
+			if ("." != data && "+" != data) {
+
+				try {
+					oSpawn.stdin.write("\r\n");
+				} catch (e) {
+					// nothing to do here
+				}
+
+				sResult += data;
 			}
 		});
 	});
@@ -133,8 +164,8 @@ module.exports = function () {
 	function SimpleSSL() {
 		_classCallCheck(this, SimpleSSL);
 
-		_openSSLBinPath = process.env.OPENSSL_BIN || "openssl";
-		_openSSLConfPath = process.env.OPENSSL_CONF || null;
+		_openSSLBinPath = _openSSLBinPath || process.env.OPENSSL_BIN || "openssl";
+		_openSSLConfPath = _openSSLConfPath || process.env.OPENSSL_CONF || null;
 	}
 
 	_createClass(SimpleSSL, [{
