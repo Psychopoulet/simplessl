@@ -8,6 +8,10 @@
 
 			SimpleSSL = require(path.join(__dirname, "..", "dist", "main.js"));
 
+// consts
+
+	const MAX_TIMEOUT = 5 * 1000;
+
 // private
 
 	var SSL = new SimpleSSL(),
@@ -266,14 +270,14 @@ describe("createPrivateKey", () => {
 
 	it("should create private key", () => {
 
-		return SSL.createPrivateKey(serverkey).then((keys) => {
+		return SSL.createPrivateKey(serverkey, { country : "FR", keysize: "small" }).then((keys) => {
 
-			assert.strictEqual("object", typeof keys, "private key was not generated");
-			assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
+			assert.strictEqual("object", typeof keys, "keys were not generated");
+				assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
 
 		});
 
-	});
+	}).timeout(MAX_TIMEOUT);
 
 });
 
@@ -305,15 +309,20 @@ describe("createCSR", () => {
 
 	it("should create CSR", () => {
 
-		return SSL.createCSR(serverkey, servercsr).then((keys) => {
+		return SSL.createCSR(serverkey, servercsr, { country : "FR", keysize: "small" }).then((keys) => {
 
-			assert.strictEqual("object", typeof keys, "private key was not generated");
-			assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
-			assert.strictEqual("string", typeof keys.CSR, "CSR was not generated");
+			assert.strictEqual("object", typeof keys, "keys were not generated");
+				assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
+				assert.strictEqual("string", typeof keys.CSR, "CSR was not generated");
+				assert.strictEqual("object", typeof keys.options, "private key was not generated");
+					assert.strictEqual("string", typeof keys.options.country, "private key was generated with the wrong country");
+						assert.strictEqual("FR", keys.options.country, "private key was generated with the wrong country");
+					assert.strictEqual("number", typeof keys.options.keysize, "private key was generated with the wrong keysize");
+						assert.strictEqual(2048, keys.options.keysize, "private key was generated with the wrong keysize");
 
 		});
 
-	});
+	}).timeout(MAX_TIMEOUT);
 
 });
 
@@ -345,16 +354,21 @@ describe("createCertificate", () => {
 
 	it("should create certificate", () => {
 
-		return SSL.createCertificate(serverkey, servercsr, servercrt).then((keys) => {
+		return SSL.createCertificate(serverkey, servercsr, servercrt, { country : "FR", keysize: "small" }).then((keys) => {
 
-			assert.strictEqual("object", typeof keys, "private key was not generated");
-			assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
-			assert.strictEqual("string", typeof keys.CSR, "CSR was not generated");
-			assert.strictEqual("string", typeof keys.certificate, "certificate was not generated");
+			assert.strictEqual("object", typeof keys, "keys were not generated");
+				assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
+				assert.strictEqual("string", typeof keys.CSR, "CSR was not generated");
+				assert.strictEqual("string", typeof keys.certificate, "certificate was not generated");
+				assert.strictEqual("object", typeof keys.options, "private key was not generated");
+					assert.strictEqual("string", typeof keys.options.country, "private key was generated with the wrong country");
+						assert.strictEqual("FR", keys.options.country, "private key was generated with the wrong country");
+					assert.strictEqual("number", typeof keys.options.keysize, "private key was generated with the wrong keysize");
+						assert.strictEqual(2048, keys.options.keysize, "private key was generated with the wrong keysize");
 
 		});
 
-	});
+	}).timeout(MAX_TIMEOUT);
 
 });
 
@@ -367,12 +381,17 @@ describe("server", () => {
 
 	it("https", (done) => {
 
-		SSL.createCertificate(serverkey, servercsr, servercrt).then((keys) => {
+		SSL.createCertificate(serverkey, servercsr, servercrt, { country : "FR", keysize: "small" }).then((keys) => {
 
-			assert.strictEqual("object", typeof keys, "private key was not generated");
-			assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
-			assert.strictEqual("string", typeof keys.CSR, "CSR was not generated");
-			assert.strictEqual("string", typeof keys.certificate, "certificate was not generated");
+			assert.strictEqual("object", typeof keys, "keys were not generated");
+				assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
+				assert.strictEqual("string", typeof keys.CSR, "CSR was not generated");
+				assert.strictEqual("string", typeof keys.certificate, "certificate was not generated");
+				assert.strictEqual("object", typeof keys.options, "certificate was not generated");
+					assert.strictEqual("string", typeof keys.options.country, "certificatey was generated with the wrong country");
+						assert.strictEqual("FR", keys.options.country, "certificate was generated with the wrong country");
+					assert.strictEqual("number", typeof keys.options.keysize, "certificate was generated with the wrong keysize");
+						assert.strictEqual(2048, keys.options.keysize, "certificate was generated with the wrong keysize");
 
 			const https = require("https");
 
@@ -409,7 +428,7 @@ describe("server", () => {
 
 		}).catch(done);
 
-	});
+	}).timeout(MAX_TIMEOUT);
 
 	it("tls", (done) => {
 
@@ -458,6 +477,6 @@ describe("server", () => {
 
 		}).catch(done);
 
-	});
+	}).timeout(MAX_TIMEOUT);
 
 });
