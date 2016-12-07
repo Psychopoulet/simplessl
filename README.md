@@ -10,20 +10,30 @@ $ npm install simplessl
 
 ## Features
 
-   * simply create key, csr & crt files for ssl use
+   * simply create key, csr & crt and save it in files for ssl use
    * ... with the three or only one function
 
 ## Doc
 
    * ``` static setOpenSSLBinPath(string file) : Promise ``` set a specific path to the OpenSSL software
    * ``` static setOpenSSLConfPath(string file) : Promise ``` set a specific path to the OpenSSL configuration
-   * ``` createPrivateKey(string keyfile [, string|number keysize]) : Promise ```
-   * ``` createCSR(string keyfile, string csrfile [, string|number keysize]) : Promise ```
-   * ``` createCertificate(string keyfile, string csrfile, string certificatefile [, string|number keysize]) : Promise ```
+   * ``` createPrivateKey(string keyfile [, string|number|object options]) : Promise ```
+   * ``` createCSR(string keyfile, string csrfile [, string|number options]) : Promise ```
+   * ``` createCertificate(string keyfile, string csrfile, string certificatefile [, string|number|object options]) : Promise ```
 
-"keysize" must be equal to : small | 2048 | medium | 3072 | large | 4096
+if 'options' is given and not an object
 
-(small = 2048, medium = 3072, large = 4096)
+  => define the key's size
+
+else
+
+  * string|number options.keysize : must be equal to : ('small' | 2048) | ('medium' | 3072) | ('large' | 4096)
+  * string options.country
+  * string options.locality
+  * string options.state
+  * string options.organization
+  * string options.common
+  * string options.email
 
 ## Examples
 
@@ -40,9 +50,12 @@ var SSL = new SimpleSSL(),
 // this function will automatically apply SSL.createCSR && SSL.createPrivateKey functions
 // if serverkey or servercsr does not exist
 
-SSL.createCertificate(serverkey, servercsr, servercrt).then((keys) => {
+SSL.createCertificate(serverkey, servercsr, servercrt, 'medium').then((keys) => {
 
-   console.log(keys);
+   console.log(keys.privateKey);
+   console.log(keys.CSR);
+   console.log(keys.certificate);
+   console.log(keys.options); // with conf default value added
 
    return new Promise((resolve, reject) => {
 

@@ -11,6 +11,10 @@ var path = require("path"),
     fs = require("fs"),
     spawn = require("child_process").spawn;
 
+// consts
+
+var WATING_STDIN = /(.*) \[(.*)\]:$/;
+
 // private
 
 // attrs
@@ -93,7 +97,7 @@ function _readFileProm(file) {
 	});
 }
 
-function _wrapper(tabArgs) {
+function _wrapper(tabArgs, options) {
 
 	return new Promise(function (resolve, reject) {
 
@@ -119,43 +123,65 @@ function _wrapper(tabArgs) {
 				if (code) {
 					reject(new Error(sResult));
 				} else {
-					resolve();
+					resolve(options);
 				}
 			}
 		});
 
 		oSpawn.stdout.on("data", function (data) {
-
-			data = data instanceof Buffer ? data.toString("utf8").trim() : data;
-
-			if ("." != data && "+" != data) {
-
-				try {
-					oSpawn.stdin.write("\r\n");
-				} catch (e) {
-					// nothing to do here
-				}
-
-				sResult += data;
-			}
+			sResult += _wrapperStdToString(oSpawn, data, options);
 		});
 
 		oSpawn.stderr.on("data", function (data) {
-
-			data = data instanceof Buffer ? data.toString("utf8").trim() : data;
-
-			if ("." != data && "+" != data) {
-
-				try {
-					oSpawn.stdin.write("\r\n");
-				} catch (e) {
-					// nothing to do here
-				}
-
-				sResult += data;
-			}
+			sResult += _wrapperStdToString(oSpawn, data, options);
 		});
 	});
+}
+
+function _wrapperStdToString(oSpawn, data, options) {
+
+	var result = "";
+
+	try {
+
+		data = data instanceof Buffer ? data.toString("utf8").trim() : data;
+
+		if ("" !== data && "." !== data && "+" !== data) {
+
+			var match = data.match(WATING_STDIN);
+
+			if (match) {
+
+				if (-1 < match[1].indexOf("Country Name")) {
+					options.country = options.country ? options.country : match[2] ? match[2] : ".";
+					oSpawn.stdin.write(options.country + "\n");
+				} else if (-1 < match[1].indexOf("Locality Name")) {
+					options.locality = options.locality ? options.locality : match[2] ? match[2] : ".";
+					oSpawn.stdin.write(options.locality + "\n");
+				} else if (-1 < match[1].indexOf("State or Province Name")) {
+					options.state = options.state ? options.state : match[2] ? match[2] : ".";
+					oSpawn.stdin.write(options.state + "\n");
+				} else if (-1 < match[1].indexOf("Organization Name")) {
+					options.organization = options.organization ? options.organization : match[2] ? match[2] : ".";
+					oSpawn.stdin.write(options.organization + "\n");
+				} else if (-1 < match[1].indexOf("Common Name")) {
+					options.common = options.common ? options.common : match[2] ? match[2] : ".";
+					oSpawn.stdin.write(options.common + "\n");
+				} else if (-1 < match[1].indexOf("Email Address")) {
+					options.email = options.email ? options.email : match[2] ? match[2] : ".";
+					oSpawn.stdin.write(options.email + "\n");
+				} else {
+					oSpawn.stdin.write(".\n");
+				}
+			} else {
+				result = data;
+			}
+		}
+	} catch (e) {
+		result = e.message ? e.message : e;
+	}
+
+	return result;
 }
 
 // module
@@ -170,13 +196,28 @@ module.exports = function () {
 
 	_createClass(SimpleSSL, [{
 		key: "createPrivateKey",
-		value: function createPrivateKey(keyFilePath, size) {
+		value: function createPrivateKey(keyFilePath, options) {
 
-			size = "undefined" === typeof size ? 2048 : size;
-			size = "small" === size ? 2048 : size;
-			size = "medium" === size ? 3072 : size;
-			size = "large" === size ? 4096 : size;
-			size = size !== 2048 && size !== 3072 && size !== 4096 ? 2048 : size;
+			if (!options) {
+
+				options = {
+					keysize: "number" === typeof options || "string" === typeof options ? options : 2048
+				};
+			}
+
+			// keysize
+			options.keysize = "undefined" === typeof options ? 2048 : options.keysize;
+			options.keysize = "small" === options.keysize ? 2048 : options.keysize;
+			options.keysize = "medium" === options.keysize ? 3072 : options.keysize;
+			options.keysize = "large" === options.keysize ? 4096 : options.keysize;
+			options.keysize = options.keysize !== 2048 && options.keysize !== 3072 && options.keysize !== 4096 ? 2048 : options.keysize;
+
+			options.country = "string" === typeof options.country ? options.country : "";
+			options.locality = "string" === typeof options.locality ? options.locality : "";
+			options.state = "string" === typeof options.state ? options.state : "";
+			options.organization = "string" === typeof options.organization ? options.organization : "";
+			options.common = "string" === typeof options.common ? options.common : "";
+			options.email = "string" === typeof options.email ? options.email : "";
 
 			return _isFileProm(keyFilePath).then(function (exists) {
 
@@ -190,21 +231,22 @@ module.exports = function () {
 							return Promise.reject(new Error("\"" + path.dirname(keyFilePath) + "\" does not exist"));
 						} else {
 
-							return _wrapper(_openSSLConfPath ? ["genrsa", "-out", keyFilePath, size, "-config", _openSSLConfPath] : ["genrsa", "-out", keyFilePath, size]).then(function () {
+							return _wrapper(_openSSLConfPath ? ["genrsa", "-out", keyFilePath, options.keysize, "-config", _openSSLConfPath] : ["genrsa", "-out", keyFilePath, options.keysize], options).then(function (_options) {
+								options = _options;
 								return _readFileProm(keyFilePath, "utf8");
 							});
 						}
 					});
 				}
 			}).then(function (data) {
-				return Promise.resolve({ privateKey: data });
+				return Promise.resolve({ privateKey: data, options: options });
 			});
 		}
 	}, {
 		key: "createCSR",
-		value: function createCSR(keyFilePath, CSRFilePath, size) {
+		value: function createCSR(keyFilePath, CSRFilePath, options) {
 
-			return this.createPrivateKey(keyFilePath, size ? size : null).then(function (keys) {
+			return this.createPrivateKey(keyFilePath, options ? options : null).then(function (keys) {
 
 				return _isFileProm(CSRFilePath).then(function (exists) {
 
@@ -212,20 +254,21 @@ module.exports = function () {
 						return _readFileProm(CSRFilePath, "utf8");
 					} else {
 
-						return _wrapper(_openSSLConfPath ? ["req", "-new", "-key", keyFilePath, "-out", CSRFilePath, "-config", _openSSLConfPath] : ["req", "-new", "-key", keyFilePath, "-out", CSRFilePath]).then(function () {
+						return _wrapper(_openSSLConfPath ? ["req", "-new", "-key", keyFilePath, "-out", CSRFilePath, "-config", _openSSLConfPath] : ["req", "-new", "-key", keyFilePath, "-out", CSRFilePath], keys.options).then(function (_options) {
+							keys.options = _options;
 							return _readFileProm(CSRFilePath, "utf8");
 						});
 					}
 				}).then(function (data) {
-					return Promise.resolve({ privateKey: keys.privateKey, CSR: data });
+					return Promise.resolve({ privateKey: keys.privateKey, CSR: data, options: keys.options });
 				});
 			});
 		}
 	}, {
 		key: "createCertificate",
-		value: function createCertificate(keyFilePath, CSRFilePath, CRTFilePath, size) {
+		value: function createCertificate(keyFilePath, CSRFilePath, CRTFilePath, options) {
 
-			return this.createCSR(keyFilePath, CSRFilePath, size ? size : null).then(function (keys) {
+			return this.createCSR(keyFilePath, CSRFilePath, options ? options : null).then(function (keys) {
 
 				return _isFileProm(CRTFilePath).then(function (exists) {
 
@@ -233,12 +276,13 @@ module.exports = function () {
 						return _readFileProm(CRTFilePath, "utf8");
 					} else {
 
-						return _wrapper(["x509", "-req", "-days", "365", "-in", CSRFilePath, "-signkey", keyFilePath, "-out", CRTFilePath]).then(function () {
+						return _wrapper(["x509", "-req", "-days", "365", "-in", CSRFilePath, "-signkey", keyFilePath, "-out", CRTFilePath], keys.options).then(function (_options) {
+							keys.options = _options;
 							return _readFileProm(CRTFilePath, "utf8");
 						});
 					}
 				}).then(function (data) {
-					return Promise.resolve({ privateKey: keys.privateKey, CSR: keys.CSR, certificate: data });
+					return Promise.resolve({ privateKey: keys.privateKey, CSR: keys.CSR, certificate: data, options: keys.options });
 				});
 			});
 		}
