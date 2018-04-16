@@ -1,6 +1,9 @@
 # simplessl
 A basic openssl manager
 
+[![Build Status](https://api.travis-ci.org/Psychopoulet/simplessl.svg?branch=develop)](https://travis-ci.org/Psychopoulet/simplessl)
+[![Coverage Status](https://coveralls.io/repos/github/Psychopoulet/simplessl/badge.svg?branch=develop)](https://coveralls.io/github/Psychopoulet/simplessl)
+[![Dependency Status](https://img.shields.io/david/Psychopoulet/simplessl/develop.svg)](https://github.com/Psychopoulet/simplessl)
 
 ## Installation
 
