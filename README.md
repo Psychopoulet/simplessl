@@ -18,66 +18,85 @@ $ npm install simplessl
 
 ## Doc
 
-   * ``` setOpenSSLBinPath(string file) : Promise ``` set a specific path to the OpenSSL software
-   * ``` setOpenSSLConfPath(string file) : Promise ``` set a specific path to the OpenSSL configuration
-   * ``` createPrivateKey(string keyfile [, string|number|object options]) : Promise ```
-   * ``` createCSR(string keyfile, string csrfile [, string|number options]) : Promise ```
-   * ``` createCertificate(string keyfile, string csrfile, string certificatefile [, string|number|object options]) : Promise ```
+```typescript
+interface iOptions {
+  keysize?: string|number, // must be equal to : ("small" | 2048) | ("medium" | 3072) | ("large" | 4096)
+  country?: string,
+  locality?: string,
+  state?: string,
+  organization?: string,
+  common?: string,
+  email?: string
+}
 
-if 'options' is given and not an object
+interface iPrivateKey {
+  options: iOptions,
+  privateKey: string
+}
 
-  => define the key's size
+interface iCSR extends iPrivateKey {
+  CSR: string
+}
 
-else
+interface iCertificate extends iCSR {
+  certificate: string
+}
+```
 
-  * string|number options.keysize : must be equal to : ('small' | 2048) | ('medium' | 3072) | ('large' | 4096)
-  * string options.country
-  * string options.locality
-  * string options.state
-  * string options.organization
-  * string options.common
-  * string options.email
+   * ``` setOpenSSLBinPath(file: string): Promise<void> ``` set a specific path to the OpenSSL software
+   * ``` setOpenSSLConfPath(file: string): Promise<void> ``` set a specific path to the OpenSSL configuration
+   * ``` createPrivateKey(keyfile: string, options?: string|number|iOptions): Promise<iPrivateKey> ```
+   * ``` createCSR(keyfile: string, csrfile: string, options?: string|number|iOptions): Promise<iCSR> ```
+   * ``` createCertificate(keyfile: string, csrfile: string, certificatefile: string, options?: string|number|iOptions): Promise<iCertificate> ```
+
+if "options" is given and not an object, define the key's size
 
 ## Examples
 
-```js
-const SimpleSSL = require('simplessl');
+### Native
 
-var SSL = new SimpleSSL(),
+```javascript
+const SimpleSSL = require("simplessl");
 
-   crtpath = path.join(__dirname, 'crt'),
-      serverkey = path.join(crtpath, 'server.key'),
-      servercsr = path.join(crtpath, 'server.csr'),
-      servercrt = path.join(crtpath, 'server.crt');
+const SSL = new SimpleSSL(),
+
+   crtpath = path.join(__dirname, "crt"),
+      serverkey = path.join(crtpath, "server.key"),
+      servercsr = path.join(crtpath, "server.csr"),
+      servercrt = path.join(crtpath, "server.crt");
 
 // this function will automatically apply SSL.createCSR && SSL.createPrivateKey functions
 // if serverkey or servercsr does not exist
 
-SSL.createCertificate(serverkey, servercsr, servercrt, 'medium').then((keys) => {
+SSL.createCertificate(serverkey, servercsr, servercrt, "medium").then((keys) => {
 
    console.log(keys.privateKey);
    console.log(keys.CSR);
    console.log(keys.certificate);
    console.log(keys.options); // with conf default value added
 
-   return new Promise((resolve, reject) => {
+   return new Promise((resolve) => {
 
-      try {
-
-         require('https').createServer({
-            key: keys.privateKey,
-            cert: keys.certificate
-         }).listen(8000, resolve);
-
-      }
-      catch(e) {
-         reject(e);
-      }
+       require("https").createServer({
+          key: keys.privateKey,
+          cert: keys.certificate
+       }).listen(8000, resolve);
 
    });
 
 }).catch((err) => {
    console.log(err);
+});
+```
+
+### Typescript
+
+```typescript
+import SimpleSSL = require("simplessl");
+const SSL = new SimpleSSL();
+
+SSL.createCertificate(serverkey, servercsr, servercrt, "medium").then((data: iCertificate) => {
+  console.log(data);
 });
 ```
 

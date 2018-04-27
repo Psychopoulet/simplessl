@@ -1,5 +1,13 @@
 language: node_js
 node_js:
+  - "4"
+  - "6"
   - "8"
+addons:
+  apt:
+    packages:
+    - openssl
+install:
+  - "npm install -g typescript"
+  - "npm install"
 script: "npm run-script tests"
-sudo: false
