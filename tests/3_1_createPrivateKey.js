@@ -111,6 +111,66 @@ describe("createPrivateKey", () => {
 
 	}).timeout(MAX_TIMEOUT);
 
+	it("should create private key with \"small\" keysize", () => {
+
+		return SSL.createPrivateKey(SERVER_KEY, {
+			"keysize": "small"
+		}).then((keys) => {
+
+			assert.strictEqual("object", typeof keys, "keys were not generated");
+				assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
+				assert.strictEqual("object", typeof keys.options, "private key was not generated");
+					assert.strictEqual("string", typeof keys.options.country, "private key was generated with the wrong country");
+						assert.strictEqual("", keys.options.country, "private key was generated with the wrong country");
+					assert.strictEqual("number", typeof keys.options.keysize, "private key was generated with the wrong keysize");
+						assert.strictEqual(2048, keys.options.keysize, "private key was generated with the wrong keysize");
+
+			return Promise.resolve();
+
+		});
+
+	}).timeout(MAX_TIMEOUT);
+
+	it("should create private key with \"medium\" keysize", () => {
+
+		return SSL.createPrivateKey(SERVER_KEY, {
+			"keysize": "medium"
+		}).then((keys) => {
+
+			assert.strictEqual("object", typeof keys, "keys were not generated");
+				assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
+				assert.strictEqual("object", typeof keys.options, "private key was not generated");
+					assert.strictEqual("string", typeof keys.options.country, "private key was generated with the wrong country");
+						assert.strictEqual("", keys.options.country, "private key was generated with the wrong country");
+					assert.strictEqual("number", typeof keys.options.keysize, "private key was generated with the wrong keysize");
+						assert.strictEqual(3072, keys.options.keysize, "private key was generated with the wrong keysize");
+
+			return Promise.resolve();
+
+		});
+
+	}).timeout(MAX_TIMEOUT);
+
+	it("should create private key with \"large\" keysize", () => {
+
+		return SSL.createPrivateKey(SERVER_KEY, {
+			"keysize": "large"
+		}).then((keys) => {
+
+			assert.strictEqual("object", typeof keys, "keys were not generated");
+				assert.strictEqual("string", typeof keys.privateKey, "private key was not generated");
+				assert.strictEqual("object", typeof keys.options, "private key was not generated");
+					assert.strictEqual("string", typeof keys.options.country, "private key was generated with the wrong country");
+						assert.strictEqual("", keys.options.country, "private key was generated with the wrong country");
+					assert.strictEqual("number", typeof keys.options.keysize, "private key was generated with the wrong keysize");
+						assert.strictEqual(4096, keys.options.keysize, "private key was generated with the wrong keysize");
+
+			return Promise.resolve();
+
+		});
+
+	}).timeout(MAX_TIMEOUT);
+
 	it("should create private key with no options", () => {
 
 		return SSL.createPrivateKey(SERVER_KEY).then((keys) => {
