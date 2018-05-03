@@ -46,8 +46,8 @@ interface iCertificate extends iCSR {
 }
 ```
 
-   * ``` setOpenSSLBinPath(file: string): Promise<void> ``` set a specific path to the OpenSSL software
-   * ``` setOpenSSLConfPath(file: string): Promise<void> ``` set a specific path to the OpenSSL configuration
+   * ``` setOpenSSLBinPath(file: string): Promise<void> ``` set a specific path to the OpenSSL software (default = process.env.OPENSSL_BIN || "openssl")
+   * ``` setOpenSSLConfPath(file: string): Promise<void> ``` set a specific path to the OpenSSL configuration (default = process.env.OPENSSL_CONF || <simplessl>/lib/openssl.cnf)
    * ``` createPrivateKey(keyfile: string, options?: string|number|iOptions): Promise<iPrivateKey> ```
    * ``` createCSR(keyfile: string, csrfile: string, options?: string|number|iOptions): Promise<iCSR> ```
    * ``` createCertificate(keyfile: string, csrfile: string, certificatefile: string, options?: string|number|iOptions): Promise<iCertificate> ```
