@@ -1,15 +1,22 @@
 {
   "name": "simplessl",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "description": "A basic openssl manager",
   "main": "lib/main.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "tests": "gulp tests"
+    "lint": "npx eslint ./lib/**/*.js ./test/**/*.js",
+    "check-updates": "npx check-version-modules",
+    "unit-tests": "npx nyc --reporter=html --reporter=text mocha",
+    "tests": "npm run-script lint && npm run-script check-updates && npm run-script unit-tests",
+    "ci": "npm run-script tests && npx nyc report --reporter=text-lcov | coveralls"
   },
-  "pre-push": [
-    "tests"
-  ],
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run-script lint",
+      "pre-push": "npm run-script tests"
+    }
+  },
   "repository": {
     "type": "git",
     "url": "git://github.com/Psychopoulet/simplessl.git"
@@ -25,14 +32,13 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@types/node": "9.6.7",
-    "gulp": "4.0.0",
-    "gulp-coveralls": "0.1.4",
-    "gulp-eslint": "4.0.2",
-    "gulp-istanbul": "1.1.3",
-    "gulp-mocha": "3.0.1",
-    "gulp-plumber": "1.2.0",
-    "pre-push": "0.1.1"
+    "@types/node": "10.12.18",
+    "check-version-modules": "1.1.1",
+    "coveralls": "3.0.2",
+    "eslint": "5.12.1",
+    "mocha": "5.2.0",
+    "nyc": "13.1.0",
+    "husky": "1.3.1"
   },
   "homepage": "https://github.com/Psychopoulet/simplessl#readme",
   "engines": {

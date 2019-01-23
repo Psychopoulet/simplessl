@@ -14,7 +14,7 @@
 
 // consts
 
-	const MAX_TIMEOUT = 5 * 1000;
+	const MAX_TIMEOUT = 10 * 1000;
 
 	const CERTIFICATE_PATH = join(__dirname, "crt");
 		const SERVER_KEY = join(CERTIFICATE_PATH, "server.key");
