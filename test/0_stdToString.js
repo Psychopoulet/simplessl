@@ -2,8 +2,10 @@
 
 // deps
 
+	// natives
 	const assert = require("assert");
 
+	// locals
 	const stdToString = require(require("path").join(__dirname, "..", "lib", "stdToString.js"));
 
 // tests

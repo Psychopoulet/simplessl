@@ -2,24 +2,25 @@
 
 // deps
 
-	const { join } = require("path");
+	// natives
 	const assert = require("assert");
+	const { homedir } = require("os");
+	const { join } = require("path");
 
-	const directoryExists = require(join(__dirname, "..", "lib", "directoryExists.js"));
+	// externals
+	const { mkdirpProm, rmdirpProm } = require("node-promfs");
+
+	// locals
 	const SimpleSSL = require(join(__dirname, "..", "lib", "main.js"));
-
-	const mkdir = require(join(__dirname, "mkdir.js"));
-	const unlink = require(join(__dirname, "unlink.js"));
-	const rmdir = require(join(__dirname, "rmdir.js"));
 
 // consts
 
-	const MAX_TIMEOUT = 5 * 1000;
+	const MAX_TIMEOUT = 30 * 1000;
 
-	const CERTIFICATE_PATH = join(__dirname, "crt");
-		const SERVER_KEY = join(CERTIFICATE_PATH, "server.key");
-		const SERVER_CSR = join(CERTIFICATE_PATH, "server.csr");
-		const SERVER_CRT = join(CERTIFICATE_PATH, "server.crt");
+	const PACKAGE_DIRECTORY = join(homedir(), "simplessl");
+		const SERVER_KEY = join(PACKAGE_DIRECTORY, "server.key");
+		const SERVER_CSR = join(PACKAGE_DIRECTORY, "server.csr");
+		const SERVER_CRT = join(PACKAGE_DIRECTORY, "server.crt");
 
 // process
 
@@ -33,23 +34,15 @@ describe("createCertificate", () => {
 	const SSL = new SimpleSSL();
 
 	before(() => {
-		return mkdir(CERTIFICATE_PATH);
+		return SSL.debug(true);
 	});
 
-	after(() => {
+	beforeEach(() => {
+		return mkdirpProm(PACKAGE_DIRECTORY);
+	});
 
-		return directoryExists(CERTIFICATE_PATH).then((exists) => {
-
-			return !exists ? Promise.resolve() : unlink(SERVER_KEY).then(() => {
-				return unlink(SERVER_CSR);
-			}).then(() => {
-				return unlink(SERVER_CRT);
-			}).then(() => {
-				return rmdir(CERTIFICATE_PATH);
-			});
-
-		});
-
+	afterEach(() => {
+		return rmdirpProm(PACKAGE_DIRECTORY);
 	});
 
 	it("should check empty value", (done) => {

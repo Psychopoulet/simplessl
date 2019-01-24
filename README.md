@@ -106,7 +106,7 @@ SSL.createCertificate(serverkey, servercsr, servercrt, "medium").then((data: iCe
 ## Tests
 
 ```bash
-$ gulp
+$ npm run-script tests
 ```
 
 ## License

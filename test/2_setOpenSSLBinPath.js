@@ -2,9 +2,11 @@
 
 // deps
 
-	const { join } = require("path");
+	// natives
 	const assert = require("assert");
+	const { join } = require("path");
 
+	// locals
 	const SimpleSSL = require(join(__dirname, "..", "lib", "main.js"));
 
 // tests
