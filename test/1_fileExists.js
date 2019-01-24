@@ -2,8 +2,10 @@
 
 // deps
 
+	// natives
 	const assert = require("assert");
 
+	// locals
 	const fileExists = require(require("path").join(__dirname, "..", "lib", "fileExists.js"));
 
 // tests

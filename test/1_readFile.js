@@ -2,8 +2,10 @@
 
 // deps
 
+	// natives
 	const assert = require("assert");
 
+	// locals
 	const readFile = require(require("path").join(__dirname, "..", "lib", "readFile.js"));
 
 // tests
