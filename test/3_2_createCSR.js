@@ -33,6 +33,10 @@ describe("createCSR", () => {
 
 	const SSL = new SimpleSSL();
 
+	before(() => {
+		return SSL.debug(true);
+	});
+
 	beforeEach(() => {
 		return mkdirpProm(CERTIFICATE_PATH);
 	});

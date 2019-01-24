@@ -1,6 +1,6 @@
 {
   "name": "simplessl",
-  "version": "2.5.3",
+  "version": "2.6.0",
   "description": "A basic openssl manager",
   "main": "lib/main.js",
   "typings": "lib/index.d.ts",
