@@ -18,8 +18,7 @@
 	const MAX_TIMEOUT = 30 * 1000;
 
 	const PACKAGE_DIRECTORY = join(homedir(), "simplessl");
-		const CERTIFICATE_PATH = join(PACKAGE_DIRECTORY, "crt");
-			const SERVER_KEY = join(CERTIFICATE_PATH, "server.key");
+		const SERVER_KEY = join(PACKAGE_DIRECTORY, "server.key");
 
 // process
 
@@ -37,7 +36,7 @@ describe("createPrivateKey", () => {
 	});
 
 	beforeEach(() => {
-		return mkdirpProm(CERTIFICATE_PATH);
+		return mkdirpProm(PACKAGE_DIRECTORY);
 	});
 
 	afterEach(() => {
